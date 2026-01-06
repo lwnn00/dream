@@ -1275,7 +1275,62 @@
                     invitationCode
                 });
             },
-
+  // 简单注册（不需要邀请码）
+  simpleRegister: async function(username, password) {
+    const url = `${API_CONFIG.getBaseUrl()}/api/simple-register`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('简单注册失败:', error);
+      throw error;
+    }
+  },
+  
+  // 简单登录（备选）
+  simpleLogin: async function(username, password) {
+    const url = `${API_CONFIG.getBaseUrl()}/api/simple-login`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('简单登录失败:', error);
+      throw error;
+    }
+  }
+};
             // 用户登录
             login: async function(username, password) {
                 const result = await this.request(API_CONFIG.endpoints.login, 'POST', {
@@ -1422,7 +1477,179 @@
                     this.showGuestUI();
                 }
             },
-
+// 显示简单注册模态框
+  showSimpleRegisterModal: function() {
+    // 创建简单的模态框
+    const modalHTML = `
+      <div id="simpleRegisterModal" class="modal" style="display: flex;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">快速注册（试用版）</h2>
+            <p class="modal-subtitle">无需邀请码，立即开始使用</p>
+          </div>
+          <div class="modal-form">
+            <div class="form-row">
+              <label for="simpleUsername">用户名</label>
+              <input type="text" id="simpleUsername" placeholder="请输入用户名（至少3个字符）">
+              <div id="simpleUsernameError" class="error-message"></div>
+            </div>
+            <div class="form-row">
+              <label for="simplePassword">密码</label>
+              <input type="password" id="simplePassword" placeholder="请输入密码（至少6个字符）">
+              <div id="simplePasswordError" class="error-message"></div>
+            </div>
+            <div class="form-row">
+              <label for="simpleConfirmPassword">确认密码</label>
+              <input type="password" id="simpleConfirmPassword" placeholder="请再次输入密码">
+              <div id="simpleConfirmPasswordError" class="error-message"></div>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 8px; border-left: 4px solid #2a5298;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #2a5298;">🎉 试用用户权益</p>
+              <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #555;">
+                <li>可以保存最多 <strong>18条</strong> 记录</li>
+                <li>完全免费使用</li>
+                <li>30天试用期</li>
+                <li>随时可以升级为正式会员</li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button class="btn btn-success" id="simpleRegisterBtn">立即注册</button>
+            <button class="btn btn-secondary" id="cancelSimpleRegisterBtn">取消</button>
+          </div>
+          <div class="modal-link">
+            已有账户？ <a id="showLoginFromSimple">立即登录</a><br>
+            需要正式会员？ <a id="showOriginalRegister">使用邀请码注册</a>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // 添加到页面
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer);
+    
+    // 绑定事件
+    document.getElementById('simpleRegisterBtn').addEventListener('click', () => this.simpleRegister());
+    document.getElementById('cancelSimpleRegisterBtn').addEventListener('click', () => this.hideSimpleRegisterModal());
+    document.getElementById('showLoginFromSimple').addEventListener('click', () => {
+      this.hideSimpleRegisterModal();
+      this.showLoginModal();
+    });
+    document.getElementById('showOriginalRegister').addEventListener('click', () => {
+      this.hideSimpleRegisterModal();
+      this.showRegisterModal();
+    });
+    
+    // 自动聚焦
+    setTimeout(() => {
+      document.getElementById('simpleUsername').focus();
+    }, 100);
+  },
+  
+  // 隐藏简单注册模态框
+  hideSimpleRegisterModal: function() {
+    const modal = document.getElementById('simpleRegisterModal');
+    if (modal) {
+      modal.remove();
+    }
+  },
+  
+  // 简单注册
+  simpleRegister: async function() {
+    const username = document.getElementById('simpleUsername').value.trim();
+    const password = document.getElementById('simplePassword').value.trim();
+    const confirmPassword = document.getElementById('simpleConfirmPassword').value.trim();
+    
+    // 验证输入
+    let isValid = true;
+    if (!username || username.length < 3) {
+      this.showError('simpleUsernameError', '用户名至少需要3个字符');
+      isValid = false;
+    } else {
+      this.hideError('simpleUsernameError');
+    }
+    
+    if (!password || password.length < 6) {
+      this.showError('simplePasswordError', '密码至少需要6个字符');
+      isValid = false;
+    } else {
+      this.hideError('simplePasswordError');
+    }
+    
+    if (password !== confirmPassword) {
+      this.showError('simpleConfirmPasswordError', '两次输入的密码不一致');
+      isValid = false;
+    } else {
+      this.hideError('simpleConfirmPasswordError');
+    }
+    
+    if (!isValid) return;
+    
+    try {
+      APIService.showGlobalLoading('正在注册...');
+      const result = await APIService.simpleRegister(username, password);
+      APIService.hideGlobalLoading();
+      
+      if (result.success) {
+        // 保存用户信息
+        const user = {
+          id: result.user.id,
+          username: result.user.username,
+          userType: result.user.userType || 'trial',
+          trialCount: result.user.trialCount || 0,
+          maxTrialCount: result.user.maxTrialCount || 18
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('authToken', result.token);
+        
+        // 更新UI
+        this.updateUI(user);
+        
+        // 隐藏模态框
+        this.hideSimpleRegisterModal();
+        
+        // 重新加载历史记录
+        await loadHistory();
+        
+        // 显示成功消息
+        alert(`✅ 注册成功！欢迎试用用户 ${user.username}\n\n您可以保存最多18条记录。`);
+      } else {
+        this.showError('simplePasswordError', result.error || '注册失败');
+      }
+    } catch (error) {
+      APIService.hideGlobalLoading();
+      this.showError('simplePasswordError', '网络错误，请重试');
+    }
+  },
+  
+  // 修改原来的 showRegisterModal 函数，添加简单注册选项
+  showRegisterModal: function() {
+    // 先询问用户选择哪种注册方式
+    const choice = confirm(
+      '请选择注册方式：\n\n' +
+      '点击"确定"：快速试用注册（无需邀请码，可保存18条记录）\n' +
+      '点击"取消"：使用邀请码注册（正式会员）'
+    );
+    
+    if (choice) {
+      // 用户选择快速试用注册
+      this.showSimpleRegisterModal();
+    } else {
+      // 用户选择邀请码注册
+      document.getElementById('registerModal').style.display = 'flex';
+      document.getElementById('registerUsername').focus();
+      
+      // 清除所有错误消息
+      this.clearAllErrors();
+      
+      // 刷新邀请码列表
+      this.refreshInvitationCodeList();
+    }
+  }
+};
             // 显示游客UI
             showGuestUI: function() {
                 document.getElementById('userInfo').innerHTML = `
@@ -2962,3 +3189,4 @@
 </body>
 
 </html>
+
