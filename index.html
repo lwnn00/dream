@@ -1516,15 +1516,62 @@
 
             // 显示注册模态框
             showRegisterModal: function() {
-                document.getElementById('registerModal').style.display = 'flex';
-                document.getElementById('registerUsername').focus();
+    document.getElementById('registerModal').style.display = 'flex';
+    document.getElementById('registerUsername').focus();
 
-                // 清除所有错误消息
-                this.clearAllErrors();
+    // 清除所有错误消息
+    this.clearAllErrors();
 
-                // 刷新邀请码列表
-                this.refreshInvitationCodeList();
-            },
+    // 刷新邀请码列表
+    this.refreshInvitationCodeList();
+    
+    // ============ 新增：隐藏需要认证的按钮 ============
+    setTimeout(() => {
+        // 隐藏需要管理员认证的按钮
+        const fileImportBtn = document.getElementById('fileImportBtn');
+        const manualImportBtn = document.getElementById('manualImportBtn');
+        
+        if (fileImportBtn) {
+            fileImportBtn.style.display = 'none';
+        }
+        if (manualImportBtn) {
+            manualImportBtn.style.display = 'none';
+        }
+        
+        // 修改按钮容器内容
+        const buttonContainer = document.querySelector('.modal-form div[style*="flex-direction: column"]');
+        if (buttonContainer) {
+            buttonContainer.innerHTML = `
+                <div style="text-align: center; padding: 10px; color: #666;">
+                    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">邀请码说明</p>
+                    <p style="margin: 0 0 4px 0; font-size: 12px;">邀请码需要从管理员处获取</p>
+                    <p style="margin: 0 0 12px 0; font-size: 12px;">请直接在下拉列表中选择可用邀请码</p>
+                    <button type="button" class="user-btn" id="refreshInviteListBtn" style="font-size: 13px; padding: 8px 16px;">
+                        🔄 刷新列表
+                    </button>
+                </div>
+            `;
+            
+            // 重新绑定刷新按钮事件
+            const refreshBtn = document.getElementById('refreshInviteListBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => this.refreshInvitationCodeList());
+            }
+        }
+        
+        // 更新文件分享说明
+        const fileShareNote = document.querySelector('.modal-form div[style*="使用说明"]');
+        if (fileShareNote) {
+            fileShareNote.innerHTML = `
+                <strong>邀请码使用说明：</strong><br>
+                1. 从管理员处获取邀请码<br>
+                2. 在下拉列表中选择可用邀请码<br>
+                3. 如果没有可用邀请码，请联系管理员<br>
+                4. 试用用户无需邀请码（限18次记录）
+            `;
+        }
+    }, 100);
+},
 
             // 隐藏所有模态框
             hideAllModals: function() {
@@ -2913,4 +2960,5 @@
         });
     </script>
 </body>
+
 </html>
