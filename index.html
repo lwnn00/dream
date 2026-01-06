@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>足球让球/大小盘口记录软件</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 样式部分保持不变，与原始代码相同 */
+        .handicap-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eaeaea;
+        }
+
+        .handicap-tab {
+            flex: 1;
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 4px;
+            color: #666;
+        }
+
+        .handicap-tab.active {
+            background: #2a5298;
+            color: white;
+        }
+
+        .handicap-tab:last-child {
+            margin-right: 0;
+        }
+
+        .handicap-content {
+            display: none;
+        }
+
+        .handicap-content.active {
+            display: block;
+        }
+
+        .size-recommendation-up {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.08);
+            border: 2px solid #28a745;
+        }
+
+        .size-recommendation-down {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.08);
+            border: 2px solid #dc3545;
+        }
+
+        .size-recommendation-neutral {
+            color: #6c757d;
+            background-color: rgba(108, 117, 125, 0.08);
+            border: 2px solid #6c757d;
+        }
+
+        .recommendation-label {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recommendation-label i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .dual-recommendation {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .recommendation-box {
+            flex: 1;
+            background-color: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        /* 调整历史表格列宽 */
+        .history-table th:nth-child(1) {
+            width: 120px;
+        }
+
+        .history-table th:nth-child(2) {
+            width: 80px;
+        }
+
+        .history-table th:nth-child(3) {
+            width: 100px;
+        }
+
+        /* 原有样式保持不变，只添加新增部分 */
+        .user-section {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            color: white;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-type {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .user-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            color: #1e3c72;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .modal-subtitle {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .modal-form {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .modal-form label {
+            display: block;
+            margin-bottom: 6px;
+            color: #444;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .modal-form input,
+        .modal-form select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .modal-form input:focus,
+        .modal-form select:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .modal-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .modal-link a {
+            color: #2a5298;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .trial-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .trial-count {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .admin-link {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+        }
+
+        .admin-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .admin-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 原有样式保持不变 */
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 10px;
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            opacity: 0.85;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .main-content {
+            padding: 15px;
+        }
+
+        .input-section,
+        .result-section,
+        .history-section {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-section {
+            background-color: #f9f9f9;
+            border: 1px solid #eaeaea;
+        }
+
+        .result-section {
+            background-color: #f0f7ff;
+            border: 1px solid #cce0ff;
+        }
+
+        .history-section {
+            background-color: #fff9e6;
+            border: 1px solid #ffeaa7;
+        }
+
+        .section-title {
+            font-size: 17px;
+            color: #1e3c72;
+            margin-top: 0;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(30, 60, 114, 0.15);
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #444;
+            font-size: 14px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+            background-color: white;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
+        }
+
+        .btn {
+            background-color: #2a5298;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 8px;
+            margin-top: 8px;
+            width: 100%;
+            display: block;
+        }
+
+        .btn:hover,
+        .btn:active {
+            background-color: #1e3c72;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover,
+        .btn-secondary:active {
+            background-color: #5a6268;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover,
+        .btn-success:active {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover,
+        .btn-danger:active {
+            background-color: #c82333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            margin: 0;
+            padding: 12px 10px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 280px;
+            margin-top: 15px;
+        }
+
+        .history-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            min-width: 600px;
+        }
+
+        .history-table th {
+            background-color: #1e3c72;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .history-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .history-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status-up {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .status-down {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .record-action {
+            padding: 6px 10px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .record-edit {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .record-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .auto-calculation-note {
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        footer {
+            text-align: center;
+            padding: 16px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            background-color: #f9f9f9;
+            line-height: 1.4;
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+
+            .main-content {
+                padding: 12px;
+            }
+
+            .input-section,
+            .result-section,
+            .history-section {
+                padding: 14px;
+                margin-bottom: 12px;
+            }
+
+            .section-title {
+                font-size: 16px;
+                margin-bottom: 14px;
+            }
+
+            select,
+            input {
+                padding: 14px;
+                font-size: 16px;
+                /* 增加字体大小便于触摸 */
+            }
+
+            .btn {
+                padding: 16px;
+                font-size: 16px;
+            }
+
+            .recommendation-result {
+                font-size: 24px;
+                padding: 16px;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .history-table th,
+            .history-table td {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+
+            .user-section {
+                position: static;
+                margin-top: 15px;
+                justify-content: center;
+            }
+
+            .admin-link {
+                position: static;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+
+            .handicap-tab {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .dual-recommendation {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .history-table {
+                min-width: 700px;
+            }
+        }
+
+        /* 小屏幕手机优化 */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 18px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+            }
+
+            .recommendation-result {
+                font-size: 22px;
+                padding: 14px;
+            }
+
+            .chart-container {
+                height: 220px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .history-table th {
+                font-size: 12px;
+                padding: 10px 6px;
+            }
+
+            .history-table td {
+                font-size: 11px;
+                padding: 8px 5px;
+            }
+
+            .modal-content {
+                padding: 20px;
+                width: 95%;
+            }
+
+            .modal-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* 防止iOS safari的缩放 */
+        input,
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+
+        /* 触摸反馈优化 */
+        .btn:active,
+        .record-action:active {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }
+
+        /* 下拉选择框优化 */
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        
+        /* 新增加载动画样式 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .loading-text {
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        
+        .recommendation-result {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .recommendation-up {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.08);
+            border: 2px solid #28a745;
+        }
+        
+        .recommendation-down {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.08);
+            border: 2px solid #dc3545;
+        }
+        
+        .recommendation-neutral {
+            color: #6c757d;
+            background-color: rgba(108, 117, 125, 0.08);
+            border: 2px solid #6c757d;
+        }
+        
+        /* 网络状态指示器 */
+        .network-status {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 1001;
+            display: none;
+        }
+        
+        .network-online {
+            background-color: rgba(40, 167, 69, 0.9);
+            color: white;
+        }
+        
+        .network-offline {
+            background-color: rgba(220, 53, 69, 0.9);
+            color: white;
+        }
+        
+        /* 本地存储标识 */
+        .local-storage-badge {
+            color: #dc3545;
+            font-size: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        
+        .cloud-storage-badge {
+            color: #28a745;
+            font-size: 10px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- 网络状态指示器 -->
+    <div id="networkStatus" class="network-status network-online">
+        网络连接正常
+    </div>
+    
+    <!-- 全局加载遮罩 -->
+    <div id="globalLoading" class="loading-overlay">
+        <div class="spinner" style="width: 40px; height: 40px; border-width: 4px;"></div>
+        <div class="loading-text" id="loadingText">正在处理，请稍候...</div>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">用户登录</h2>
+                <p class="modal-subtitle">请使用您的账户登录</p>
+            </div>
+            <div class="modal-form">
+                <div class="form-row">
+                    <label for="loginUsername">用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名">
+                    <div id="loginUsernameError" class="error-message"></div>
+                </div>
+                <div class="form-row">
+                    <label for="loginPassword">密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码">
+                    <div id="loginPasswordError" class="error-message"></div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" id="loginBtn">登录</button>
+                <button class="btn btn-secondary" id="cancelLoginBtn">取消</button>
+            </div>
+            <div class="modal-link">
+                还没有账户？ <a id="showRegisterLink">立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">用户注册</h2>
+                <p class="modal-subtitle">注册成为正式会员，享受无限制记录功能</p>
+            </div>
+            <div class="modal-form">
+                <div class="form-row">
+                    <label for="registerUsername">用户名</label>
+                    <input type="text" id="registerUsername" placeholder="请输入用户名（至少3个字符）">
+                    <div id="registerUsernameError" class="error-message"></div>
+                </div>
+                <div class="form-row">
+                    <label for="registerPassword">密码</label>
+                    <input type="password" id="registerPassword" placeholder="请输入密码（至少6个字符）">
+                    <div id="registerPasswordError" class="error-message"></div>
+                </div>
+                <div class="form-row">
+                    <label for="registerConfirmPassword">确认密码</label>
+                    <input type="password" id="registerConfirmPassword" placeholder="请再次输入密码">
+                    <div id="registerConfirmPasswordError" class="error-message"></div>
+                </div>
+                <div class="form-row">
+                    <label for="invitationCode">邀请码</label>
+                    <select id="invitationCode">
+                        <option value="">请选择邀请码</option>
+                        <!-- 邀请码选项将通过JavaScript动态生成 -->
+                    </select>
+                    <div id="invitationCodeError" class="error-message"></div>
+                    <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                        如果没有可用邀请码，您可以先试用（限18次记录）。
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="btn" id="fileImportBtn" style="font-size: 20px;">
+                        📁 选择文件导入
+                    </button>
+                    <button type="button" class="btn btn-success" id="manualImportBtn" style="font-size: 20px;">
+                        ✍️ 手动输入邀请码
+                    </button>
+                    <button type="button" class="user-btn" id="refreshInviteListBtn" style="font-size: 20px;">
+                        🔄 刷新列表
+                    </button>
+                </div>
+
+                <!-- 文件分享说明 -->
+                <div
+                    style="font-size: 11px; color: #666; margin-top: 12px; line-height: 1.4; padding: 8px; background-color: #f5f5f5; border-radius: 6px;">
+                    <strong>使用说明：</strong>
+                    1. 从管理员处获取邀请码文件 (.dat)<br>
+                    2. 点击"导入文件"选择文件<br>
+                    3. 点击"刷新列表"查看可用邀请码<br>
+                    4. 选择邀请码完成注册
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-success" id="registerBtn">注册</button>
+                <button class="btn btn-secondary" id="cancelRegisterBtn">取消</button>
+            </div>
+            <div class="modal-link">
+                已有账户？ <a id="showLoginLink">立即登录</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>足球让球/大小盘口记录软件</h1>
+            <div class="subtitle">记录、分析、推荐足球让球盘和大小盘数据</div>
+            <div class="user-section">
+                <div class="user-info" id="userInfo">
+                    <!-- 用户信息将在这里动态显示 -->
+                </div>
+                <div class="user-actions" id="userActions">
+                    <!-- 用户操作按钮将在这里动态显示 -->
+                </div>
+            </div>
+        </header>
+        <div class="main-content">
+            <!-- 试用提示信息 -->
+            <div id="trialInfo" class="trial-info" style="display: none;">
+                您是试用用户，剩余保存次数: <span id="trialCount" class="trial-count">18</span> 次
+            </div>
+
+            <!-- 盘口类型切换标签 -->
+            <div class="handicap-tabs">
+                <button class="handicap-tab active" data-tab="asian-handicap">让球盘</button>
+                <button class="handicap-tab" data-tab="over-under">大小盘</button>
+            </div>
+
+            <!-- 让球盘内容 -->
+            <div id="asian-handicap-content" class="handicap-content active">
+                <div class="input-section">
+                    <h2 class="section-title">让球盘数据录入</h2>
+                    <!-- 新增赛事名称输入框 -->
+                    <div class="form-group">
+                        <label for="asian-match-name">赛事名称</label>
+                        <input type="text" id="asian-match-name" placeholder="请输入赛事名称，例如：曼城 vs 利物浦">
+                    </div>
+                    <div class="form-group">
+                        <label for="asian-initial-handicap">初始盘口</label>
+                        <select id="asian-initial-handicap">
+                            <option value="">请选择</option>
+                            <!-- 盘口从0到3，递增度为0.25 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="asian-current-handicap">即时盘口</label>
+                        <select id="asian-current-handicap">
+                            <option value="">请选择</option>
+                            <!-- 盘口从0到3，递增度为0.25 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="asian-initial-water">初始水位</label>
+                        <select id="asian-initial-water">
+                            <option value="">请选择</option>
+                            <!-- 水位从0.7到1.2，递增度为0.01 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="asian-current-water">即时水位</label>
+                        <select id="asian-current-water">
+                            <option value="">请选择</option>
+                            <!-- 水位从0.7到1.2，递增度为0.01 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="asian-historical-record">历史战绩</label>
+                        <select id="asian-historical-record">
+                            <option value="">请选择</option>
+                            <option value="win">赢</option>
+                            <option value="loss">输</option>
+                        </select>
+                    </div>
+                    <div class="auto-calculation-note">提示：选择所有选项，保存记录推荐结果将自动生成</div>
+                    <div class="button-group">
+                        <button class="btn btn-success" id="save-asian-btn">保存让球盘记录</button>
+                        <button class="btn btn-secondary" id="reset-asian-btn">重置表单</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 大小盘内容 -->
+            <div id="over-under-content" class="handicap-content">
+                <div class="input-section">
+                    <h2 class="section-title">大小盘数据录入</h2>
+                    <!-- 新增赛事名称输入框 -->
+                    <div class="form-group">
+                        <label for="size-match-name">赛事名称</label>
+                        <input type="text" id="size-match-name" placeholder="请输入赛事名称，例如：曼城 vs 利物浦">
+                    </div>
+                    <div class="form-group">
+                        <label for="size-initial-handicap">初始大小盘</label>
+                        <select id="size-initial-handicap">
+                            <option value="">请选择</option>
+                            <!-- 大小盘从1.5到4，递增度为0.25 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size-current-handicap">即时大小盘</label>
+                        <select id="size-current-handicap">
+                            <option value="">请选择</option>
+                            <!-- 大小盘从1.5到4，递增度为0.25 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size-initial-water">初始水位</label>
+                        <select id="size-initial-water">
+                            <option value="">请选择</option>
+                            <!-- 水位从0.7到1.2，递增度为0.01 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size-current-water">即时水位</label>
+                        <select id="size-current-water">
+                            <option value="">请选择</option>
+                            <!-- 水位从0.7到1.2，递增度为0.01 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="size-historical-record">历史战绩</label>
+                        <select id="size-historical-record">
+                            <option value="">请选择</option>
+                            <option value="win">赢</option>
+                            <option value="loss">输</option>
+                        </select>
+                    </div>
+                    <div class="auto-calculation-note">提示：选择所有选项，保存记录推荐结果将自动生成</div>
+                    <div class="button-group">
+                        <button class="btn btn-success" id="save-size-btn">保存大小盘记录</button>
+                        <button class="btn btn-secondary" id="reset-size-btn">重置表单</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h2 class="section-title">推荐结果与统计</h2>
+                <div class="dual-recommendation">
+                    <div class="recommendation-box">
+                        <div class="recommendation-label">让球盘推荐</div>
+                        <div id="asian-recommendation-result" class="recommendation-result recommendation-neutral">
+                            等待输入中....
+                        </div>
+                        <div id="asian-recommendation-details"
+                            style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
+                        <div id="asian-loading" style="display: none; margin-top: 10px;">
+                            <div style="font-size: 12px; color: #666; text-align: center;">
+                                <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                正在计算推荐结果...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="recommendation-box">
+                        <div class="recommendation-label">大小盘推荐</div>
+                        <div id="size-recommendation-result"
+                            class="recommendation-result size-recommendation-neutral">等待输入中....</div>
+                        <div id="size-recommendation-details"
+                            style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
+                        <div id="size-loading" style="display: none; margin-top: 10px;">
+                            <div style="font-size: 12px; color: #666; text-align: center;">
+                                <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                正在计算推荐结果...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="stats-chart"></canvas>
+                </div>
+            </div>
+            <div class="history-section">
+                <div class="history-controls">
+                    <h2 class="section-title">历史记录</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" id="toggle-history"
+                            style="padding: 8px 12px; font-size: 13px;">隐藏记录</button>
+                        <button class="btn btn-danger" id="clear-history"
+                            style="padding: 8px 12px; font-size: 13px;">清空记录</button>
+                        <button class="btn btn-success" id="sync-history"
+                            style="padding: 8px 12px; font-size: 13px;">同步数据</button>
+                    </div>
+                </div>
+                <div id="history-content">
+                    <div class="history-table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <!-- 新增赛事名称列 -->
+                                    <th>赛事名称</th>
+                                    <th>盘口类型</th>
+                                    <th>盘口变化</th>
+                                    <th>水位变化</th>
+                                    <th>历史战绩</th>
+                                    <th>推荐结果</th>
+                                    <th>实际结果</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <!-- 历史记录将在这里动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <p>足球让球/大小盘口记录软件 &copy; 2025 | 数据仅供参考，娱乐就行</p>
+            <p id="apiStatus" style="font-size: 11px; color: #888;">API状态: 正在检查...</p>
+        </footer>
+    </div>
+
+    <script>
+        // ============== 服务器API配置 ============== //
+        const API_CONFIG = {
+             // 根据部署环境自动选择API地址
+  getBaseUrl: function() {
+    // 如果是本地开发环境
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+    // 生产环境 - 使用完整的后端API地址
+    // 注意：替换为你实际的Vercel部署地址
+    return 'https://footballdream.vercel.app';
+  },
+  
+  // 推荐API端点
+  endpoints: {
+    register: '/api/register',
+    login: '/api/login',
+    history: '/api/history',
+    records: '/api/records',
+    asianRecommendation: '/api/recommend/asian',
+    sizeRecommendation: '/api/recommend/size',
+    invitationCodes: '/api/invitation-codes',
+    test: '/api/test',
+    stats: '/api/stats',
+    userInfo: '/api/user/info',
+    sync: '/api/sync'
+  }
+};
+
+        // ============== API服务 ============== //
+        const APIService = {
+            // 显示全局加载
+            showGlobalLoading: function(message = '正在处理，请稍候...') {
+                const loading = document.getElementById('globalLoading');
+                const loadingText = document.getElementById('loadingText');
+                loadingText.textContent = message;
+                loading.style.display = 'flex';
+            },
+
+            // 隐藏全局加载
+            hideGlobalLoading: function() {
+                const loading = document.getElementById('globalLoading');
+                loading.style.display = 'none';
+            },
+
+            // 显示网络状态
+            showNetworkStatus: function(isOnline, message) {
+                const networkStatus = document.getElementById('networkStatus');
+                networkStatus.textContent = message;
+                networkStatus.className = `network-status ${isOnline ? 'network-online' : 'network-offline'}`;
+                networkStatus.style.display = 'block';
+                
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    networkStatus.style.display = 'none';
+                }, 3000);
+            },
+
+            // 通用请求方法
+            async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
+                const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                // 添加认证头（如果需要）
+                if (requiresAuth) {
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+                
+                const options = {
+                    method,
+                    headers,
+                    body: data ? JSON.stringify(data) : null
+                };
+                
+                try {
+                    const response = await fetch(url, options);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    console.error(`API请求失败 (${endpoint}):`, error);
+                    
+                    // 检查网络状态
+                    if (!navigator.onLine) {
+                        this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+                    } else if (error.message.includes('Failed to fetch')) {
+                        this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
+                    }
+                    
+                    throw error;
+                }
+            },
+
+            // 测试服务器连接
+            testConnection: async function() {
+                try {
+                    const response = await this.request(API_CONFIG.endpoints.test);
+                    return response;
+                } catch (error) {
+                    console.error('服务器连接测试失败:', error);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            // 用户注册
+            register: async function(username, password, invitationCode) {
+                return this.request(API_CONFIG.endpoints.register, 'POST', {
+                    username,
+                    password,
+                    invitationCode
+                });
+            },
+
+            // 用户登录
+            login: async function(username, password) {
+                const result = await this.request(API_CONFIG.endpoints.login, 'POST', {
+                    username,
+                    password
+                });
+                
+                // 如果登录成功，保存token
+                if (result.success && result.token) {
+                    localStorage.setItem('authToken', result.token);
+                }
+                
+                return result;
+            },
+
+            // 获取历史记录
+            getHistory: async function(userId) {
+                return this.request(`${API_CONFIG.endpoints.history}?userId=${userId}`, 'GET');
+            },
+
+            // 保存记录
+            saveRecord: async function(record) {
+                return this.request(API_CONFIG.endpoints.records, 'POST', record, true);
+            },
+
+            // 更新记录
+            updateRecord: async function(id, data) {
+                return this.request(`${API_CONFIG.endpoints.records}/${id}`, 'PUT', data, true);
+            },
+
+            // 删除记录
+            deleteRecord: async function(id) {
+                return this.request(`${API_CONFIG.endpoints.records}/${id}`, 'DELETE', null, true);
+            },
+
+            // 获取邀请码
+            getInvitationCodes: async function() {
+                return this.request(API_CONFIG.endpoints.invitationCodes, 'GET');
+            },
+
+            // 导入邀请码
+            importInvitationCodes: async function(codes, createdBy = 'admin') {
+                return this.request(API_CONFIG.endpoints.invitationCodes, 'POST', {
+                    codes,
+                    createdBy
+                });
+            },
+
+            // 获取让球盘推荐
+            getAsianRecommendation: async function(data) {
+                return this.request(API_CONFIG.endpoints.asianRecommendation, 'POST', data);
+            },
+
+            // 获取大小盘推荐
+            getSizeRecommendation: async function(data) {
+                return this.request(API_CONFIG.endpoints.sizeRecommendation, 'POST', data);
+            }
+        };
+
+        // ============== 存储管理器（本地备份） ============== //
+        const StorageManager = {
+            // 保存记录到本地备份
+            saveRecordLocal: function(record) {
+                const records = this.getLocalRecords();
+                record.id = `local_${Date.now()}`;
+                record.created_at = new Date().toISOString();
+                records.push(record);
+                localStorage.setItem('football_records_local', JSON.stringify(records));
+                return record.id;
+            },
+
+            // 获取本地记录
+            getLocalRecords: function() {
+                return JSON.parse(localStorage.getItem('football_records_local') || '[]');
+            },
+
+            // 更新本地记录
+            updateRecordLocal: function(id, updates) {
+                const records = this.getLocalRecords();
+                const index = records.findIndex(r => r.id === id);
+                if (index !== -1) {
+                    records[index] = { ...records[index], ...updates };
+                    localStorage.setItem('football_records_local', JSON.stringify(records));
+                    return true;
+                }
+                return false;
+            },
+
+            // 删除本地记录
+            deleteRecordLocal: function(id) {
+                let records = this.getLocalRecords();
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('football_records_local', JSON.stringify(records));
+                return true;
+            },
+
+            // 清空本地记录
+            clearLocalRecords: function() {
+                localStorage.removeItem('football_records_local');
+            },
+
+            // 获取未同步的记录
+            getUnsyncedRecords: function() {
+                return this.getLocalRecords();
+            }
+        };
+
+        // ============== 用户管理系统 ============== //
+        const UserSystem = {
+            // 初始化用户数据
+            init: function() {
+                console.log('开始初始化用户系统...');
+
+                // 初始化默认用户
+                if (!localStorage.getItem('users')) {
+                    const defaultUsers = [{
+                        id: 1,
+                        username: 'admin',
+                        password: 'admin123',
+                        userType: 'admin',
+                        registrationDate: new Date().toISOString(),
+                        lastLogin: new Date().toISOString()
+                    }];
+                    localStorage.setItem('users', JSON.stringify(defaultUsers));
+                }
+
+                // 检查登录状态
+                this.checkLoginStatus();
+
+                console.log('用户系统初始化完成');
+            },
+
+            // 检查登录状态
+            checkLoginStatus: function() {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                if (currentUser) {
+                    this.updateUI(currentUser);
+                    
+                    // 更新试用信息显示
+                    if (currentUser.userType === 'trial') {
+                        this.updateTrialInfo(currentUser.username);
+                    }
+                } else {
+                    this.showGuestUI();
+                }
+            },
+
+            // 显示游客UI
+            showGuestUI: function() {
+                document.getElementById('userInfo').innerHTML = `
+                    <div class="user-name">游客</div>
+                    <div class="user-type">试用用户</div>
+                `;
+                document.getElementById('userActions').innerHTML = `
+                    <button class="user-btn" id="loginBtnHeader">登录</button>
+                    <button class="user-btn" id="registerBtnHeader">注册</button>
+                `;
+
+                // 显示试用信息
+                const trialInfoElement = document.getElementById('trialInfo');
+                if (trialInfoElement) {
+                    trialInfoElement.style.display = 'block';
+                    this.updateGuestTrialInfo();
+                }
+
+                // 绑定事件
+                document.getElementById('loginBtnHeader').addEventListener('click', () => this.showLoginModal());
+                document.getElementById('registerBtnHeader').addEventListener('click', () => this.showRegisterModal());
+            },
+
+            // 更新游客试用信息
+            updateGuestTrialInfo: function() {
+                const localRecords = StorageManager.getLocalRecords();
+                const usedCount = localRecords.length;
+                const remaining = Math.max(0, 18 - usedCount);
+                
+                const trialCountElement = document.getElementById('trialCount');
+                if (trialCountElement) {
+                    trialCountElement.textContent = remaining;
+                }
+                
+                const trialInfoElement = document.getElementById('trialInfo');
+                if (trialInfoElement) {
+                    trialInfoElement.innerHTML = `
+                        您是试用用户，剩余保存次数: <span class="trial-count">${remaining}</span> 次
+                        <div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">
+                            当前使用本地存储 | 已使用: ${usedCount}次
+                        </div>
+                    `;
+                }
+            },
+
+            // 更新用户UI
+            updateUI: function(user) {
+                document.getElementById('userInfo').innerHTML = `
+                    <div class="user-name">${user.username}</div>
+                    <div class="user-type">${user.userType === 'admin' ? '管理员' : (user.userType === 'registered' ? '注册会员' : '试用用户')}</div>
+                `;
+
+                let actionsHTML = '';
+                if (user.userType === 'admin') {
+                    actionsHTML = `<button class="user-btn" id="logoutBtn">退出</button>`;
+                } else {
+                    actionsHTML = `<button class="user-btn" id="logoutBtn">退出</button>`;
+                }
+                document.getElementById('userActions').innerHTML = actionsHTML;
+
+                // 显示或隐藏试用信息
+                const trialInfoElement = document.getElementById('trialInfo');
+                if (trialInfoElement) {
+                    if (user.userType === 'trial') {
+                        trialInfoElement.style.display = 'block';
+                    } else {
+                        trialInfoElement.style.display = 'none';
+                    }
+                }
+
+                // 绑定退出事件
+                document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+            },
+
+            // 更新试用信息
+            updateTrialInfo: function(username) {
+                const trialCountElement = document.getElementById('trialCount');
+                if (trialCountElement) {
+                    // 从服务器获取试用信息
+                    // 这里需要调用API获取用户的试用次数
+                    // 暂时显示默认值
+                    trialCountElement.textContent = '18';
+                }
+            },
+
+            // 显示登录模态框
+            showLoginModal: function() {
+                document.getElementById('loginModal').style.display = 'flex';
+                document.getElementById('loginUsername').focus();
+            },
+
+            // 显示注册模态框
+            showRegisterModal: function() {
+                document.getElementById('registerModal').style.display = 'flex';
+                document.getElementById('registerUsername').focus();
+
+                // 清除所有错误消息
+                this.clearAllErrors();
+
+                // 刷新邀请码列表
+                this.refreshInvitationCodeList();
+            },
+
+            // 隐藏所有模态框
+            hideAllModals: function() {
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('registerModal').style.display = 'none';
+            },
+
+            // 登录
+            login: async function() {
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+
+                // 验证输入
+                let isValid = true;
+                if (!username) {
+                    this.showError('loginUsernameError', '请输入用户名');
+                    isValid = false;
+                } else {
+                    this.hideError('loginUsernameError');
+                }
+
+                if (!password) {
+                    this.showError('loginPasswordError', '请输入密码');
+                    isValid = false;
+                } else {
+                    this.hideError('loginPasswordError');
+                }
+
+                if (!isValid) return;
+
+                try {
+                    APIService.showGlobalLoading('正在登录...');
+                    const result = await APIService.login(username, password);
+                    APIService.hideGlobalLoading();
+                    
+                    if (result.success) {
+                        // 保存用户信息
+                        const user = {
+                            id: result.user.id,
+                            username: result.user.username,
+                            userType: result.user.user_type || result.user.userType,
+                            trialCount: result.user.trial_count || 0,
+                            trialEndDate: result.user.trial_end_date
+                        };
+                        
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        
+                        // 更新UI
+                        this.updateUI(user);
+                        
+                        // 隐藏模态框
+                        this.hideAllModals();
+                        
+                        // 重新加载历史记录
+                        await loadHistory();
+                        
+                        // 显示成功消息
+                        alert(`欢迎回来，${user.username}！`);
+                    } else {
+                        this.showError('loginPasswordError', result.error || '登录失败');
+                    }
+                } catch (error) {
+                    APIService.hideGlobalLoading();
+                    this.showError('loginPasswordError', '网络错误，请重试');
+                }
+            },
+
+            // 注册
+            register: async function() {
+                const username = document.getElementById('registerUsername').value.trim();
+                const password = document.getElementById('registerPassword').value.trim();
+                const confirmPassword = document.getElementById('registerConfirmPassword').value.trim();
+                const invitationCode = document.getElementById('invitationCode').value.trim();
+
+                // 验证输入
+                let isValid = true;
+                if (!username || username.length < 3) {
+                    this.showError('registerUsernameError', '用户名至少需要3个字符');
+                    isValid = false;
+                } else {
+                    this.hideError('registerUsernameError');
+                }
+
+                if (!password || password.length < 6) {
+                    this.showError('registerPasswordError', '密码至少需要6个字符');
+                    isValid = false;
+                } else {
+                    this.hideError('registerPasswordError');
+                }
+
+                if (password !== confirmPassword) {
+                    this.showError('registerConfirmPasswordError', '两次输入的密码不一致');
+                    isValid = false;
+                } else {
+                    this.hideError('registerConfirmPasswordError');
+                }
+
+                if (!invitationCode) {
+                    this.showError('invitationCodeError', '请选择邀请码');
+                    isValid = false;
+                } else {
+                    this.hideError('invitationCodeError');
+                }
+
+                if (!isValid) return;
+
+                try {
+                    APIService.showGlobalLoading('正在注册...');
+                    const result = await APIService.register(username, password, invitationCode);
+                    APIService.hideGlobalLoading();
+                    
+                    if (result.success) {
+                        // 保存用户信息
+                        const user = {
+                            id: result.user.id,
+                            username: result.user.username,
+                            userType: result.user.user_type || result.user.userType,
+                            trialCount: result.user.trial_count || 0
+                        };
+                        
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        
+                        // 更新UI
+                        this.updateUI(user);
+                        
+                        // 隐藏模态框
+                        this.hideAllModals();
+                        
+                        // 重新加载历史记录
+                        await loadHistory();
+                        
+                        // 显示成功消息
+                        alert(`注册成功！欢迎${user.userType === 'registered' ? '注册会员' : '试用用户'}${user.username}`);
+                    } else {
+                        this.showError('invitationCodeError', result.error || '注册失败');
+                    }
+                } catch (error) {
+                    APIService.hideGlobalLoading();
+                    this.showError('invitationCodeError', '网络错误，请重试');
+                }
+            },
+
+            // 退出登录
+            logout: function() {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('authToken');
+                this.showGuestUI();
+                loadHistory();
+                alert('已退出登录');
+            },
+
+            // 检查是否可以保存记录（游客）
+            canGuestSaveRecord: function() {
+                const localRecords = StorageManager.getLocalRecords();
+                return localRecords.length < 18;
+            },
+
+            // 显示错误消息
+            showError: function(elementId, message) {
+                const element = document.getElementById(elementId);
+                element.textContent = message;
+                element.style.display = 'block';
+            },
+
+            // 隐藏错误消息
+            hideError: function(elementId) {
+                const element = document.getElementById(elementId);
+                element.style.display = 'none';
+            },
+
+            // 清除所有错误消息
+            clearAllErrors: function() {
+                const errorElements = document.querySelectorAll('.error-message');
+                errorElements.forEach(element => {
+                    element.style.display = 'none';
+                });
+            },
+
+            // 刷新邀请码列表
+            refreshInvitationCodeList: async function() {
+                try {
+                    const result = await APIService.getInvitationCodes();
+                    const selectElement = document.getElementById('invitationCode');
+                    
+                    // 清空现有选项
+                    while (selectElement.options.length > 1) {
+                        selectElement.remove(1);
+                    }
+                    
+                    if (result.success && result.codes && result.codes.length > 0) {
+                        result.codes.forEach(code => {
+                            const option = document.createElement('option');
+                            option.value = code.code;
+                            option.textContent = `${code.code} (${code.created_by})`;
+                            selectElement.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "暂无可用邀请码";
+                        selectElement.appendChild(option);
+                    }
+                } catch (error) {
+                    console.error('获取邀请码失败:', error);
+                }
+            },
+
+            // 文件导入邀请码
+            importViaFileInput: function() {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.dat,.txt,.json,.csv,text/plain,application/json,text/csv';
+                
+                fileInput.onchange = async function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = async function(event) {
+                        try {
+                            const content = event.target.result;
+                            let codes = [];
+                            
+                            // 尝试解析不同格式
+                            if (content.trim().startsWith('{')) {
+                                const data = JSON.parse(content);
+                                if (data.codes && Array.isArray(data.codes)) {
+                                    codes = data.codes;
+                                }
+                            } else {
+                                // 按行分割
+                                codes = content.split('\n')
+                                    .filter(line => line.trim() !== '')
+                                    .map(line => line.trim());
+                            }
+                            
+                            if (codes.length > 0) {
+                                APIService.showGlobalLoading('正在导入邀请码...');
+                                const result = await APIService.importInvitationCodes(codes, '文件导入');
+                                APIService.hideGlobalLoading();
+                                
+                                if (result.success) {
+                                    alert(`成功导入 ${result.inserted.length} 个邀请码`);
+                                    UserSystem.refreshInvitationCodeList();
+                                } else {
+                                    alert('导入失败: ' + (result.error || '未知错误'));
+                                }
+                            } else {
+                                alert('未找到有效的邀请码');
+                            }
+                        } catch (error) {
+                            alert('文件解析失败: ' + error.message);
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                fileInput.click();
+            },
+
+            // 手动输入邀请码
+            importManually: function() {
+                const input = prompt('请输入邀请码（多个邀请码用逗号分隔）：');
+                if (!input || input.trim() === '') return;
+                
+                const codes = input.split(',')
+                    .map(code => code.trim())
+                    .filter(code => code !== '');
+                
+                if (codes.length === 0) {
+                    alert('未输入有效的邀请码');
+                    return;
+                }
+                
+                // 调用API导入
+                APIService.importInvitationCodes(codes, '手动输入')
+                    .then(result => {
+                        if (result.success) {
+                            alert(`成功导入 ${result.inserted.length} 个邀请码`);
+                            UserSystem.refreshInvitationCodeList();
+                        } else {
+                            alert('导入失败: ' + (result.error || '未知错误'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('导入失败: ' + error.message);
+                    });
+            }
+        };
+
+        // ============== 盘口类型切换功能 ============== //
+        function initHandicapTabs() {
+            const tabs = document.querySelectorAll('.handicap-tab');
+            const contents = document.querySelectorAll('.handicap-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabType = this.getAttribute('data-tab');
+
+                    // 移除所有active类
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    // 添加active类到当前标签和内容
+                    this.classList.add('active');
+                    document.getElementById(`${tabType}-content`).classList.add('active');
+                });
+            });
+        }
+
+        function initHandicapOptions() {
+            // 初始化让球盘盘口选项（0-3，递增0.25）
+            const asianInitialHandicapSelect = document.getElementById('asian-initial-handicap');
+            const asianCurrentHandicapSelect = document.getElementById('asian-current-handicap');
+
+            // 清空现有选项
+            asianInitialHandicapSelect.innerHTML = '<option value="">请选择</option>';
+            asianCurrentHandicapSelect.innerHTML = '<option value="">请选择</option>';
+
+            // 让球盘盘口选项（0-3，递增0.25）
+            const asianHandicapOptions = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
+            asianHandicapOptions.forEach(value => {
+                const option1 = document.createElement('option');
+                option1.value = value.toFixed(2);
+                option1.textContent = value.toFixed(2);
+                asianInitialHandicapSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = value.toFixed(2);
+                option2.textContent = value.toFixed(2);
+                asianCurrentHandicapSelect.appendChild(option2);
+            });
+
+            // 初始化大小盘盘口选项（1.5-4，递增0.25）
+            const sizeInitialHandicapSelect = document.getElementById('size-initial-handicap');
+            const sizeCurrentHandicapSelect = document.getElementById('size-current-handicap');
+
+            // 清空现有选项
+            sizeInitialHandicapSelect.innerHTML = '<option value="">请选择</option>';
+            sizeCurrentHandicapSelect.innerHTML = '<option value="">请选择</option>';
+
+            // 大小盘盘口选项（1.5-4，递增0.25）
+            const sizeHandicapOptions = [];
+            for (let i = 1.5; i <= 4; i += 0.25) {
+                sizeHandicapOptions.push(i);
+            }
+            sizeHandicapOptions.forEach(value => {
+                const option1 = document.createElement('option');
+                option1.value = value.toFixed(2);
+                option1.textContent = value.toFixed(2);
+                sizeInitialHandicapSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = value.toFixed(2);
+                option2.textContent = value.toFixed(2);
+                sizeCurrentHandicapSelect.appendChild(option2);
+            });
+        }
+
+        function initWaterOptions() {
+            // 初始化水位选项（0.7-1.2，递增0.01）
+            const asianInitialWaterSelect = document.getElementById('asian-initial-water');
+            const asianCurrentWaterSelect = document.getElementById('asian-current-water');
+            const sizeInitialWaterSelect = document.getElementById('size-initial-water');
+            const sizeCurrentWaterSelect = document.getElementById('size-current-water');
+
+            // 清空现有选项
+            asianInitialWaterSelect.innerHTML = '<option value="">请选择</option>';
+            asianCurrentWaterSelect.innerHTML = '<option value="">请选择</option>';
+            sizeInitialWaterSelect.innerHTML = '<option value="">请选择</option>';
+            sizeCurrentWaterSelect.innerHTML = '<option value="">请选择</option>';
+
+            // 水位选项（0.7-1.2，递增0.01）
+            const waterOptions = [];
+            for (let i = 0.70; i <= 1.20; i += 0.01) {
+                waterOptions.push(i);
+            }
+            waterOptions.forEach(value => {
+                const option1 = document.createElement('option');
+                option1.value = value.toFixed(2);
+                option1.textContent = value.toFixed(2);
+                asianInitialWaterSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = value.toFixed(2);
+                option2.textContent = value.toFixed(2);
+                asianCurrentWaterSelect.appendChild(option2);
+
+                const option3 = document.createElement('option');
+                option3.value = value.toFixed(2);
+                option3.textContent = value.toFixed(2);
+                sizeInitialWaterSelect.appendChild(option3);
+
+                const option4 = document.createElement('option');
+                option4.value = value.toFixed(2);
+                option4.textContent = value.toFixed(2);
+                sizeCurrentWaterSelect.appendChild(option4);
+            });
+        }
+
+        // ============== 事件监听器初始化 ============== //
+        function initEventListeners() {
+            console.log('初始化事件监听器...');
+
+            // 绑定表单按钮事件
+            document.getElementById('save-asian-btn').addEventListener('click', saveAsianRecord);
+            document.getElementById('reset-asian-btn').addEventListener('click', resetAsianForm);
+            document.getElementById('save-size-btn').addEventListener('click', saveSizeRecord);
+            document.getElementById('reset-size-btn').addEventListener('click', resetSizeForm);
+            document.getElementById('toggle-history').addEventListener('click', toggleHistory);
+            document.getElementById('clear-history').addEventListener('click', clearHistory);
+            document.getElementById('sync-history').addEventListener('click', syncHistory);
+
+            // 绑定模态框事件
+            document.getElementById('loginBtn').addEventListener('click', () => UserSystem.login());
+            document.getElementById('cancelLoginBtn').addEventListener('click', () => UserSystem.hideAllModals());
+            document.getElementById('registerBtn').addEventListener('click', () => UserSystem.register());
+            document.getElementById('cancelRegisterBtn').addEventListener('click', () => UserSystem.hideAllModals());
+            document.getElementById('showRegisterLink').addEventListener('click', () => {
+                UserSystem.hideAllModals();
+                UserSystem.showRegisterModal();
+            });
+            document.getElementById('showLoginLink').addEventListener('click', () => {
+                UserSystem.hideAllModals();
+                UserSystem.showLoginModal();
+            });
+
+            // 绑定邀请码功能按钮
+            document.getElementById('fileImportBtn').addEventListener('click', () => UserSystem.importViaFileInput());
+            document.getElementById('manualImportBtn').addEventListener('click', () => UserSystem.importManually());
+            document.getElementById('refreshInviteListBtn').addEventListener('click', () => UserSystem.refreshInvitationCodeList());
+
+            // 为让球盘所有输入框添加change事件，用于自动计算推荐结果
+            document.getElementById('asian-initial-handicap').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-current-handicap').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-initial-water').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-current-water').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-historical-record').addEventListener('change', autoCalculateAsianRecommendation);
+
+            // 为大小盘所有输入框添加change事件，用于自动计算推荐结果
+            document.getElementById('size-initial-handicap').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-current-handicap').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-initial-water').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-current-water').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-historical-record').addEventListener('change', autoCalculateSizeRecommendation);
+
+            // 网络状态监听
+            window.addEventListener('online', () => {
+                APIService.showNetworkStatus(true, '网络已恢复');
+            });
+            
+            window.addEventListener('offline', () => {
+                APIService.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+            });
+
+            console.log('事件监听器初始化完成');
+        }
+
+        // ============== 主初始化函数 ============== //
+        async function initializeApplication() {
+            console.log('=== 开始应用程序初始化 ===');
+
+            // 第一步：测试服务器连接
+            try {
+                console.log('测试服务器连接...');
+                const testResult = await APIService.testConnection();
+                
+                if (testResult.success) {
+                    console.log('服务器连接成功:', testResult.message);
+                    document.getElementById('apiStatus').textContent = 'API状态: 正常连接';
+                    document.getElementById('apiStatus').style.color = '#28a745';
+                } else {
+                    console.warn('服务器连接警告:', testResult.error);
+                    document.getElementById('apiStatus').textContent = 'API状态: 连接异常';
+                    document.getElementById('apiStatus').style.color = '#dc3545';
+                }
+            } catch (error) {
+                console.error('服务器连接失败:', error);
+                document.getElementById('apiStatus').textContent = 'API状态: 无法连接';
+                document.getElementById('apiStatus').style.color = '#dc3545';
+            }
+
+            // 第二步：初始化用户系统
+            UserSystem.init();
+
+            // 第三步：初始化盘口类型切换
+            initHandicapTabs();
+
+            // 第四步：初始化盘口和水位选项
+            initHandicapOptions();
+            initWaterOptions();
+
+            // 第五步：加载历史记录
+            await loadHistory();
+
+            // 第六步：初始化图表
+            initChart();
+
+            // 第七步：初始化事件监听器
+            initEventListeners();
+
+            console.log('=== 应用程序初始化完成 ===');
+        }
+
+        // ============== 推荐计算函数 ============== //
+        async function autoCalculateAsianRecommendation() {
+            const initialHandicap = parseFloat(document.getElementById('asian-initial-handicap').value);
+            const currentHandicap = parseFloat(document.getElementById('asian-current-handicap').value);
+            const initialWater = parseFloat(document.getElementById('asian-initial-water').value);
+            const currentWater = parseFloat(document.getElementById('asian-current-water').value);
+            const historicalRecord = document.getElementById('asian-historical-record').value;
+            const matchName = document.getElementById('asian-match-name').value.trim();
+
+            // 如果所有字段都有值，则计算推荐结果
+            if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
+                !isNaN(initialWater) && !isNaN(currentWater) &&
+                historicalRecord && matchName) {
+                
+                // 显示加载状态
+                document.getElementById('asian-loading').style.display = 'block';
+                document.getElementById('asian-recommendation-result').textContent = "计算中...";
+                document.getElementById('asian-recommendation-result').className = "recommendation-result recommendation-neutral";
+                
+                try {
+                    // 准备请求数据
+                    const requestData = {
+                        matchName,
+                        initialHandicap,
+                        currentHandicap,
+                        initialWater,
+                        currentWater,
+                        historicalRecord,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // 调用服务器API获取推荐
+                    const result = await APIService.getAsianRecommendation(requestData);
+                    
+                    // 隐藏加载状态
+                    document.getElementById('asian-loading').style.display = 'none';
+                    
+                    // 更新界面
+                    if (result.success) {
+                        const recommendation = result.recommendation;
+                        const resultElement = document.getElementById('asian-recommendation-result');
+                        resultElement.textContent = recommendation;
+                        
+                        if (recommendation === "上盘") {
+                            resultElement.className = "recommendation-result recommendation-up";
+                        } else if (recommendation === "下盘") {
+                            resultElement.className = "recommendation-result recommendation-down";
+                        } else {
+                            resultElement.className = "recommendation-result recommendation-neutral";
+                        }
+
+                        // 显示详细信息
+                        document.getElementById('asian-recommendation-details').textContent = result.details || '';
+                    } else {
+                        throw new Error(result.error || '服务器返回错误');
+                    }
+                    
+                } catch (error) {
+                    // 隐藏加载状态
+                    document.getElementById('asian-loading').style.display = 'none';
+                    
+                    // 显示错误
+                    const resultElement = document.getElementById('asian-recommendation-result');
+                    resultElement.textContent = "计算失败";
+                    resultElement.className = "recommendation-result recommendation-neutral";
+                    document.getElementById('asian-recommendation-details').textContent = "请检查网络连接后重试";
+                    
+                    console.error('推荐计算失败:', error);
+                }
+            } else {
+                // 否则显示等待输入
+                const resultElement = document.getElementById('asian-recommendation-result');
+                resultElement.textContent = "等待输入";
+                resultElement.className = "recommendation-result recommendation-neutral";
+                document.getElementById('asian-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
+                document.getElementById('asian-loading').style.display = 'none';
+            }
+        }
+
+        async function autoCalculateSizeRecommendation() {
+            const initialHandicap = parseFloat(document.getElementById('size-initial-handicap').value);
+            const currentHandicap = parseFloat(document.getElementById('size-current-handicap').value);
+            const initialWater = parseFloat(document.getElementById('size-initial-water').value);
+            const currentWater = parseFloat(document.getElementById('size-current-water').value);
+            const historicalRecord = document.getElementById('size-historical-record').value;
+            const matchName = document.getElementById('size-match-name').value.trim();
+
+            // 如果所有字段都有值，则计算推荐结果
+            if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
+                !isNaN(initialWater) && !isNaN(currentWater) &&
+                historicalRecord && matchName) {
+                
+                // 显示加载状态
+                document.getElementById('size-loading').style.display = 'block';
+                document.getElementById('size-recommendation-result').textContent = "计算中...";
+                document.getElementById('size-recommendation-result').className = "recommendation-result size-recommendation-neutral";
+                
+                try {
+                    // 准备请求数据
+                    const requestData = {
+                        matchName,
+                        initialHandicap,
+                        currentHandicap,
+                        initialWater,
+                        currentWater,
+                        historicalRecord,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // 调用服务器API获取推荐
+                    const result = await APIService.getSizeRecommendation(requestData);
+                    
+                    // 隐藏加载状态
+                    document.getElementById('size-loading').style.display = 'none';
+                    
+                    // 更新界面
+                    if (result.success) {
+                        const recommendation = result.recommendation;
+                        const resultElement = document.getElementById('size-recommendation-result');
+                        resultElement.textContent = recommendation;
+                        
+                        if (recommendation === "大球") {
+                            resultElement.className = "recommendation-result size-recommendation-up";
+                        } else if (recommendation === "小球") {
+                            resultElement.className = "recommendation-result size-recommendation-down";
+                        } else {
+                            resultElement.className = "recommendation-result size-recommendation-neutral";
+                        }
+
+                        // 显示详细信息
+                        document.getElementById('size-recommendation-details').textContent = result.details || '';
+                    } else {
+                        throw new Error(result.error || '服务器返回错误');
+                    }
+                    
+                } catch (error) {
+                    // 隐藏加载状态
+                    document.getElementById('size-loading').style.display = 'none';
+                    
+                    // 显示错误
+                    const resultElement = document.getElementById('size-recommendation-result');
+                    resultElement.textContent = "计算失败";
+                    resultElement.className = "recommendation-result size-recommendation-neutral";
+                    document.getElementById('size-recommendation-details').textContent = "请检查网络连接后重试";
+                    
+                    console.error('推荐计算失败:', error);
+                }
+            } else {
+                // 否则显示等待输入
+                const resultElement = document.getElementById('size-recommendation-result');
+                resultElement.textContent = "等待输入";
+                resultElement.className = "recommendation-result size-recommendation-neutral";
+                document.getElementById('size-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
+                document.getElementById('size-loading').style.display = 'none';
+            }
+        }
+
+        // ============== 保存记录功能 ============== //
+        async function saveAsianRecord() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // 验证数据
+            const matchName = document.getElementById('asian-match-name').value.trim();
+            const initialHandicap = parseFloat(document.getElementById('asian-initial-handicap').value);
+            const currentHandicap = parseFloat(document.getElementById('asian-current-handicap').value);
+            const initialWater = parseFloat(document.getElementById('asian-initial-water').value);
+            const currentWater = parseFloat(document.getElementById('asian-current-water').value);
+            const historicalRecord = document.getElementById('asian-historical-record').value;
+            const recommendationResult = document.getElementById('asian-recommendation-result').textContent;
+
+            // 验证数据
+            if (!matchName) {
+                alert('请先输入赛事名称！');
+                return;
+            }
+
+            if (isNaN(initialHandicap) || isNaN(currentHandicap) || 
+                isNaN(initialWater) || isNaN(currentWater) || 
+                !historicalRecord || 
+                recommendationResult === "等待输入" || 
+                recommendationResult === "计算中..." || 
+                recommendationResult === "计算失败") {
+                alert('请先填写所有字段并获取推荐结果！');
+                return;
+            }
+
+            // 计算变化
+            const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+            const waterChange = (currentWater - initialWater).toFixed(2);
+
+            // 创建记录对象
+            const record = {
+                match_name: matchName,
+                handicap_type: 'asian',
+                initial_handicap: initialHandicap,
+                current_handicap: currentHandicap,
+                initial_water: initialWater,
+                current_water: currentWater,
+                handicap_change: parseFloat(handicapChange),
+                water_change: parseFloat(waterChange),
+                historical_record: historicalRecord,
+                recommendation: recommendationResult,
+                actual_result: ""
+            };
+
+            // 如果已登录，添加用户ID
+            if (currentUser) {
+                record.user_id = currentUser.id;
+            }
+
+            try {
+                APIService.showGlobalLoading('正在保存记录...');
+                
+                // 尝试保存到服务器
+                const result = await APIService.saveRecord(record);
+                
+                APIService.hideGlobalLoading();
+                
+                if (result.success) {
+                    // 重新加载历史记录
+                    await loadHistory();
+                    
+                    // 重置表单
+                    resetAsianForm();
+                    
+                    // 显示成功消息
+                    let successMsg = '让球盘记录已保存到服务器！';
+                    
+                    // 如果是试用用户，显示剩余次数
+                    if (currentUser && currentUser.userType === 'trial') {
+                        successMsg += `\n\n剩余试用次数: ${17 - (currentUser.trialCount || 0)}/18`;
+                    }
+                    
+                    alert(successMsg);
+                    
+                } else {
+                    // 处理服务器错误
+                    if (result.error && result.error.includes('试用')) {
+                        alert('试用限制: ' + result.error + '\n请注册成为会员继续使用！');
+                        UserSystem.showRegisterModal();
+                    } else {
+                        throw new Error(result.error || '服务器保存失败');
+                    }
+                }
+                
+            } catch (error) {
+                APIService.hideGlobalLoading();
+                
+                // 如果用户是游客或者服务器保存失败，尝试本地存储
+                if (!currentUser || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                    // 检查游客试用次数
+                    if (!currentUser && !UserSystem.canGuestSaveRecord()) {
+                        alert('试用次数已用完（最多18次）。请注册成为会员继续使用！');
+                        UserSystem.showRegisterModal();
+                        return;
+                    }
+                    
+                    // 保存到本地
+                    const localId = StorageManager.saveRecordLocal(record);
+                    
+                    // 更新游客试用信息
+                    UserSystem.updateGuestTrialInfo();
+                    
+                    // 重新加载历史记录（显示本地记录）
+                    await loadHistory();
+                    
+                    // 重置表单
+                    resetAsianForm();
+                    
+                    alert('记录已保存到本地存储（网络恢复后将自动同步）！');
+                    
+                } else {
+                    alert('保存失败: ' + error.message);
+                }
+            }
+        }
+
+        async function saveSizeRecord() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // 验证数据
+            const matchName = document.getElementById('size-match-name').value.trim();
+            const initialHandicap = parseFloat(document.getElementById('size-initial-handicap').value);
+            const currentHandicap = parseFloat(document.getElementById('size-current-handicap').value);
+            const initialWater = parseFloat(document.getElementById('size-initial-water').value);
+            const currentWater = parseFloat(document.getElementById('size-current-water').value);
+            const historicalRecord = document.getElementById('size-historical-record').value;
+            const recommendationResult = document.getElementById('size-recommendation-result').textContent;
+
+            // 验证数据
+            if (!matchName) {
+                alert('请先输入赛事名称！');
+                return;
+            }
+
+            if (isNaN(initialHandicap) || isNaN(currentHandicap) || 
+                isNaN(initialWater) || isNaN(currentWater) || 
+                !historicalRecord || 
+                recommendationResult === "等待输入" || 
+                recommendationResult === "计算中..." || 
+                recommendationResult === "计算失败") {
+                alert('请先填写所有字段并获取推荐结果！');
+                return;
+            }
+
+            // 计算变化
+            const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+            const waterChange = (currentWater - initialWater).toFixed(2);
+
+            // 创建记录对象
+            const record = {
+                match_name: matchName,
+                handicap_type: 'size',
+                initial_handicap: initialHandicap,
+                current_handicap: currentHandicap,
+                initial_water: initialWater,
+                current_water: currentWater,
+                handicap_change: parseFloat(handicapChange),
+                water_change: parseFloat(waterChange),
+                historical_record: historicalRecord,
+                recommendation: recommendationResult,
+                actual_result: ""
+            };
+
+            // 如果已登录，添加用户ID
+            if (currentUser) {
+                record.user_id = currentUser.id;
+            }
+
+            try {
+                APIService.showGlobalLoading('正在保存记录...');
+                
+                // 尝试保存到服务器
+                const result = await APIService.saveRecord(record);
+                
+                APIService.hideGlobalLoading();
+                
+                if (result.success) {
+                    // 重新加载历史记录
+                    await loadHistory();
+                    
+                    // 重置表单
+                    resetSizeForm();
+                    
+                    // 显示成功消息
+                    let successMsg = '大小盘记录已保存到服务器！';
+                    
+                    // 如果是试用用户，显示剩余次数
+                    if (currentUser && currentUser.userType === 'trial') {
+                        successMsg += `\n\n剩余试用次数: ${17 - (currentUser.trialCount || 0)}/18`;
+                    }
+                    
+                    alert(successMsg);
+                    
+                } else {
+                    // 处理服务器错误
+                    if (result.error && result.error.includes('试用')) {
+                        alert('试用限制: ' + result.error + '\n请注册成为会员继续使用！');
+                        UserSystem.showRegisterModal();
+                    } else {
+                        throw new Error(result.error || '服务器保存失败');
+                    }
+                }
+                
+            } catch (error) {
+                APIService.hideGlobalLoading();
+                
+                // 如果用户是游客或者服务器保存失败，尝试本地存储
+                if (!currentUser || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                    // 检查游客试用次数
+                    if (!currentUser && !UserSystem.canGuestSaveRecord()) {
+                        alert('试用次数已用完（最多18次）。请注册成为会员继续使用！');
+                        UserSystem.showRegisterModal();
+                        return;
+                    }
+                    
+                    // 保存到本地
+                    const localId = StorageManager.saveRecordLocal(record);
+                    
+                    // 更新游客试用信息
+                    UserSystem.updateGuestTrialInfo();
+                    
+                    // 重新加载历史记录（显示本地记录）
+                    await loadHistory();
+                    
+                    // 重置表单
+                    resetSizeForm();
+                    
+                    alert('记录已保存到本地存储（网络恢复后将自动同步）！');
+                    
+                } else {
+                    alert('保存失败: ' + error.message);
+                }
+            }
+        }
+
+        // ============== 历史记录管理 ============== //
+        async function loadHistory() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const tableBody = document.getElementById('history-table-body');
+            
+            // 清空现有内容
+            tableBody.innerHTML = '';
+            
+            // 显示加载状态
+            const loadingRow = document.createElement('tr');
+            loadingRow.innerHTML = `
+                <td colspan="8" style="text-align: center; padding: 30px;">
+                    <div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>
+                    <div style="margin-top: 10px; color: #666;">正在加载历史记录...</div>
+                </td>
+            `;
+            tableBody.appendChild(loadingRow);
+            
+            try {
+                let serverRecords = [];
+                let localRecords = [];
+                
+                // 如果已登录，尝试从服务器加载记录
+                if (currentUser) {
+                    try {
+                        const result = await APIService.getHistory(currentUser.id);
+                        if (result.success && result.records) {
+                            serverRecords = result.records;
+                        }
+                    } catch (error) {
+                        console.log('从服务器加载记录失败，使用本地记录:', error);
+                    }
+                }
+                
+                // 加载本地记录
+                localRecords = StorageManager.getLocalRecords();
+                
+                // 移除加载状态
+                tableBody.innerHTML = '';
+                
+                // 合并记录（服务器记录优先）
+                const allRecords = [...serverRecords, ...localRecords];
+                
+                if (allRecords.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
+                    tableBody.appendChild(emptyRow);
+                    updateChartData(allRecords);
+                    return;
+                }
+                
+                // 按创建时间倒序排列
+                allRecords.sort((a, b) => {
+                    const dateA = new Date(a.created_at || 0);
+                    const dateB = new Date(b.created_at || 0);
+                    return dateB - dateA;
+                });
+                
+                // 渲染记录
+                allRecords.forEach(record => {
+                    const row = document.createElement('tr');
+                    
+                    // 确定变化状态样式
+                    const handicapChangeClass = parseFloat(record.handicap_change) > 0 ? 'status-up' :
+                        parseFloat(record.handicap_change) < 0 ? 'status-down' : '';
+                    const waterChangeClass = parseFloat(record.water_change) > 0 ? 'status-up' :
+                        parseFloat(record.water_change) < 0 ? 'status-down' : '';
+                    
+                    // 盘口类型显示
+                    const handicapTypeText = record.handicap_type === 'asian' ? '让球盘' : '大小盘';
+                    const handicapTypeClass = record.handicap_type === 'asian' ? 'status-up' : 'status-down';
+                    
+                    // 判断是否是本地记录
+                    const isLocal = record.id && record.id.startsWith('local_');
+                    const storageBadge = isLocal ? 
+                        '<span class="local-storage-badge">[本地]</span>' : 
+                        '<span class="cloud-storage-badge">[云端]</span>';
+                    
+                    row.innerHTML = `
+                        <td>${record.match_name || '未命名赛事'} ${storageBadge}</td>
+                        <td class="${handicapTypeClass}">${handicapTypeText}</td>
+                        <td class="${handicapChangeClass}">${parseFloat(record.handicap_change) > 0 ? '↑ ' : parseFloat(record.handicap_change) < 0 ? '↓ ' : ''}${Math.abs(parseFloat(record.handicap_change)).toFixed(2)}</td>
+                        <td class="${waterChangeClass}">${parseFloat(record.water_change) > 0 ? '↑ ' : parseFloat(record.water_change) < 0 ? '↓ ' : ''}${Math.abs(parseFloat(record.water_change)).toFixed(2)}</td>
+                        <td>${record.historical_record === 'win' ? '赢' : '输'}</td>
+                        <td>${record.recommendation}</td>
+                        <td>
+                            <select class="actual-result-select" data-id="${record.id}" data-is-local="${isLocal}" style="width: 70px; padding: 6px; font-size: 12px;">
+                                <option value="">选择</option>
+                                <option value="win" ${record.actual_result === 'win' ? 'selected' : ''}>赢</option>
+                                <option value="loss" ${record.actual_result === 'loss' ? 'selected' : ''}>输</option>
+                            </select>
+                        </td>
+                        <td style="white-space: nowrap;">
+                            <button class="record-action record-edit" data-id="${record.id}" data-is-local="${isLocal}">编辑</button>
+                            <button class="record-action record-delete" data-id="${record.id}" data-is-local="${isLocal}">删除</button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // 添加事件监听器
+                addHistoryEventListeners();
+                
+                // 更新图表数据
+                updateChartData(allRecords);
+                
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+                tableBody.innerHTML = '';
+                const errorRow = document.createElement('tr');
+                errorRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">加载失败: ${error.message}</td>`;
+                tableBody.appendChild(errorRow);
+            }
+        }
+
+        function addHistoryEventListeners() {
+            // 实际结果选择
+            document.querySelectorAll('.actual-result-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    const id = this.dataset.id;
+                    const isLocal = this.dataset.isLocal === 'true';
+                    const value = this.value;
+                    
+                    if (isLocal) {
+                        // 更新本地记录
+                        StorageManager.updateRecordLocal(id, { actual_result: value });
+                    } else {
+                        // 更新服务器记录
+                        APIService.updateRecord(id, { actual_result: value })
+                            .then(result => {
+                                if (!result.success) {
+                                    alert('更新失败: ' + (result.error || '未知错误'));
+                                }
+                            })
+                            .catch(error => {
+                                alert('更新失败: ' + error.message);
+                            });
+                    }
+                    
+                    // 重新加载历史记录以更新图表
+                    loadHistory();
+                });
+            });
+            
+            // 编辑记录
+            document.querySelectorAll('.record-edit').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const isLocal = this.dataset.isLocal === 'true';
+                    editRecord(id, isLocal);
+                });
+            });
+            
+            // 删除记录
+            document.querySelectorAll('.record-delete').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const isLocal = this.dataset.isLocal === 'true';
+                    
+                    if (confirm('确定要删除这条记录吗？')) {
+                        deleteRecord(id, isLocal);
+                    }
+                });
+            });
+        }
+
+        function editRecord(id, isLocal) {
+            alert('编辑功能正在开发中...');
+            // 这里可以实现编辑功能
+        }
+
+        async function deleteRecord(id, isLocal) {
+            try {
+                if (isLocal) {
+                    // 删除本地记录
+                    StorageManager.deleteRecordLocal(id);
+                } else {
+                    // 删除服务器记录
+                    const result = await APIService.deleteRecord(id);
+                    if (!result.success) {
+                        throw new Error(result.error || '删除失败');
+                    }
+                }
+                
+                // 重新加载历史记录
+                await loadHistory();
+                alert('记录已删除！');
+                
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        async function syncHistory() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                alert('请先登录以同步数据！');
+                UserSystem.showLoginModal();
+                return;
+            }
+            
+            const localRecords = StorageManager.getLocalRecords();
+            
+            if (localRecords.length === 0) {
+                alert('没有需要同步的本地记录！');
+                return;
+            }
+            
+            try {
+                APIService.showGlobalLoading(`正在同步 ${localRecords.length} 条本地记录...`);
+                
+                let successCount = 0;
+                let failCount = 0;
+                
+                // 逐条同步本地记录到服务器
+                for (const record of localRecords) {
+                    try {
+                        // 添加用户ID
+                        record.user_id = currentUser.id;
+                        
+                        // 尝试保存到服务器
+                        const result = await APIService.saveRecord(record);
+                        
+                        if (result.success) {
+                            successCount++;
+                            // 从本地存储中删除已同步的记录
+                            StorageManager.deleteRecordLocal(record.id);
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        failCount++;
+                    }
+                }
+                
+                APIService.hideGlobalLoading();
+                
+                // 重新加载历史记录
+                await loadHistory();
+                
+                alert(`同步完成！\n成功: ${successCount} 条\n失败: ${failCount} 条`);
+                
+            } catch (error) {
+                APIService.hideGlobalLoading();
+                alert('同步失败: ' + error.message);
+            }
+        }
+
+        // ============== 图表功能 ============== //
+        let statsChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('stats-chart').getContext('2d');
+            const isMobile = window.innerWidth <= 768;
+            
+            statsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['水位上升', '水位下降', '盘口上升', '盘口下降', '水位<0.90'],
+                    datasets: [{
+                        label: '胜率 (%)',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(220, 53, 69, 0.7)',
+                            'rgba(0, 123, 255, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(111, 66, 193, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(40, 167, 69)',
+                            'rgb(220, 53, 69)',
+                            'rgb(0, 123, 255)',
+                            'rgb(255, 193, 7)',
+                            'rgb(111, 66, 193)'
+                        ],
+                        borderWidth: 1,
+                        barPercentage: isMobile ? 0.6 : 0.8,
+                        categoryPercentage: isMobile ? 0.7 : 0.9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                font: {
+                                    size: isMobile ? 10 : 12
+                                },
+                                padding: 5
+                            },
+                            title: {
+                                display: true,
+                                text: '胜率 (%)',
+                                font: {
+                                    size: isMobile ? 12 : 14
+                                }
+                            },
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: isMobile ? 10 : 12
+                                },
+                                maxRotation: isMobile ? 45 : 0,
+                                minRotation: isMobile ? 45 : 0
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            },
+                            titleFont: {
+                                size: isMobile ? 12 : 14
+                            },
+                            bodyFont: {
+                                size: isMobile ? 12 : 14
+                            },
+                            padding: isMobile ? 8 : 12
+                        },
+                        title: {
+                            display: true,
+                            text: '胜率统计图表（包含让球盘和大小盘）',
+                            font: {
+                                size: isMobile ? 14 : 16
+                            },
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function updateChartData(records) {
+            if (!statsChart) return;
+            
+            // 只统计有实际结果的记录
+            const validRecords = records.filter(record => record.actual_result);
+            
+            if (validRecords.length === 0) {
+                statsChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+                statsChart.update();
+                return;
+            }
+            
+            // 计算统计
+            let waterUpTotal = 0;
+            let waterUpWins = 0;
+            let waterDownTotal = 0;
+            let waterDownWins = 0;
+            let handicapUpTotal = 0;
+            let handicapUpWins = 0;
+            let handicapDownTotal = 0;
+            let handicapDownWins = 0;
+            let lowWaterTotal = 0;
+            let lowWaterWins = 0;
+
+            validRecords.forEach(record => {
+                const waterChange = parseFloat(record.water_change) || 0;
+                const handicapChange = parseFloat(record.handicap_change) || 0;
+                const currentWater = parseFloat(record.current_water) || 0;
+                const actualResult = record.actual_result;
+
+                // 水位变化统计
+                if (waterChange > 0) {
+                    waterUpTotal++;
+                    if (actualResult === 'win') waterUpWins++;
+                } else if (waterChange < 0) {
+                    waterDownTotal++;
+                    if (actualResult === 'win') waterDownWins++;
+                }
+
+                // 盘口变化统计
+                if (handicapChange > 0) {
+                    handicapUpTotal++;
+                    if (actualResult === 'win') handicapUpWins++;
+                } else if (handicapChange < 0) {
+                    handicapDownTotal++;
+                    if (actualResult === 'win') handicapDownWins++;
+                }
+
+                // 即时水位低于0.90的统计
+                if (currentWater < 0.90) {
+                    lowWaterTotal++;
+                    if (actualResult === 'win') lowWaterWins++;
+                }
+            });
+
+            // 计算胜率
+            const waterUpWinRate = waterUpTotal > 0 ? Math.round((waterUpWins / waterUpTotal) * 100) : 0;
+            const waterDownWinRate = waterDownTotal > 0 ? Math.round((waterDownWins / waterDownTotal) * 100) : 0;
+            const handicapUpWinRate = handicapUpTotal > 0 ? Math.round((handicapUpWins / handicapUpTotal) * 100) : 0;
+            const handicapDownWinRate = handicapDownTotal > 0 ? Math.round((handicapDownWins / handicapDownTotal) * 100) : 0;
+            const lowWaterWinRate = lowWaterTotal > 0 ? Math.round((lowWaterWins / lowWaterTotal) * 100) : 0;
+
+            // 更新图表
+            statsChart.data.datasets[0].data = [waterUpWinRate, waterDownWinRate, handicapUpWinRate, handicapDownWinRate, lowWaterWinRate];
+            statsChart.update();
+        }
+
+        // ============== 其他功能函数 ============== //
+        function resetAsianForm() {
+            document.getElementById('asian-match-name').value = '';
+            document.getElementById('asian-initial-handicap').value = '';
+            document.getElementById('asian-current-handicap').value = '';
+            document.getElementById('asian-initial-water').value = '';
+            document.getElementById('asian-current-water').value = '';
+            document.getElementById('asian-historical-record').value = '';
+            document.getElementById('asian-recommendation-result').textContent = '等待输入';
+            document.getElementById('asian-recommendation-result').className = 'recommendation-result recommendation-neutral';
+            document.getElementById('asian-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
+            document.getElementById('asian-loading').style.display = 'none';
+        }
+
+        function resetSizeForm() {
+            document.getElementById('size-match-name').value = '';
+            document.getElementById('size-initial-handicap').value = '';
+            document.getElementById('size-current-handicap').value = '';
+            document.getElementById('size-initial-water').value = '';
+            document.getElementById('size-current-water').value = '';
+            document.getElementById('size-historical-record').value = '';
+            document.getElementById('size-recommendation-result').textContent = '等待输入';
+            document.getElementById('size-recommendation-result').className = 'recommendation-result size-recommendation-neutral';
+            document.getElementById('size-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
+            document.getElementById('size-loading').style.display = 'none';
+        }
+
+        function toggleHistory() {
+            const historyContent = document.getElementById('history-content');
+            const toggleButton = document.getElementById('toggle-history');
+            
+            if (historyContent.classList.contains('hidden')) {
+                historyContent.classList.remove('hidden');
+                toggleButton.textContent = '隐藏记录';
+            } else {
+                historyContent.classList.add('hidden');
+                toggleButton.textContent = '显示记录';
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？此操作不可撤销！')) {
+                StorageManager.clearLocalRecords();
+                
+                // 这里也可以添加清空服务器记录的代码
+                // 但通常需要用户确认，因为这是危险操作
+                
+                loadHistory();
+                alert('历史记录已清空！');
+            }
+        }
+
+        // ============== 页面加载入口 ============== //
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM内容加载完成，开始初始化应用程序...');
+            initializeApplication();
+        });
+    </script>
+</body>
+</html>
