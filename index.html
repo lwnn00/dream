@@ -1687,7 +1687,30 @@ getHistory: async function(userId) {
                 loadHistory();
                 alert('已退出登录');
             },
-
+            // 在 UserSystem 对象中添加
+checkToken: function() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.log('未找到认证令牌');
+        return false;
+    }
+    
+    // 简单的令牌检查（可以添加JWT解析验证）
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            console.log('令牌格式错误');
+            localStorage.removeItem('authToken');
+            return false;
+        }
+        console.log('令牌有效');
+        return true;
+    } catch (error) {
+        console.log('令牌验证失败:', error);
+        localStorage.removeItem('authToken');
+        return false;
+    }
+},
             // 检查是否可以保存记录（游客）
             canGuestSaveRecord: function() {
                 const localRecords = StorageManager.getLocalRecords();
@@ -1999,7 +2022,12 @@ getHistory: async function(userId) {
         // ============== 主初始化函数 ============== //
         async function initializeApplication() {
             console.log('=== 开始应用程序初始化 ===');
-
+            // 检查令牌状态
+    if (UserSystem.checkToken()) {
+        console.log('检测到有效令牌');
+    } else {
+        console.log('未检测到有效令牌');
+    }
             // 第一步：测试服务器连接
             try {
                 console.log('测试服务器连接...');
@@ -2889,4 +2917,5 @@ getHistory: async function(userId) {
     </script>
 </body>
 </html>
+
 
