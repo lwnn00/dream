@@ -1221,40 +1221,50 @@
                 
                 // 添加认证头（如果需要）
                 if (requiresAuth) {
-                    const token = localStorage.getItem('authToken');
-                    if (token) {
-                        headers['Authorization'] = `Bearer ${token}`;
-                    }
-                }
-                
-                const options = {
-                    method,
-                    headers,
-                    body: data ? JSON.stringify(data) : null
-                };
-                
-                try {
-                    const response = await fetch(url, options);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
-                    }
-                    
-                    return await response.json();
-                } catch (error) {
-                    console.error(`API请求失败 (${endpoint}):`, error);
-                    
-                    // 检查网络状态
-                    if (!navigator.onLine) {
-                        this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
-                    } else if (error.message.includes('Failed to fetch')) {
-                        this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
-                    }
-                    
-                    throw error;
-                }
-            },
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+            console.log('API请求添加认证头，令牌长度:', token.length);
+        } else {
+            console.warn('需要认证但未找到令牌，端点:', endpoint);
+        }
+    }
+    
+    console.log(`API请求: ${method} ${url}`, { requiresAuth, hasToken: !!localStorage.getItem('authToken') });
+    
+    const options = {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : null
+    };
+    
+    try {
+        const response = await fetch(url, options);
+        
+        console.log(`API响应: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API错误详情: ${errorText}`);
+            throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log(`API成功: ${endpoint}`, result.success ? '成功' : '失败');
+        return result;
+    } catch (error) {
+        console.error(`API请求失败 (${endpoint}):`, error);
+        
+        // 检查网络状态
+        if (!navigator.onLine) {
+            this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+        } else if (error.message.includes('Failed to fetch')) {
+            this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
+        }
+        
+        throw error;
+    }
+},
 
             // 测试服务器连接
             testConnection: async function() {
@@ -1277,24 +1287,81 @@
             },
 
             // 用户登录
-            login: async function(username, password) {
-                const result = await this.request(API_CONFIG.endpoints.login, 'POST', {
-                    username,
-                    password
-                });
-                
-                // 如果登录成功，保存token
-                if (result.success && result.token) {
-                    localStorage.setItem('authToken', result.token);
-                }
-                
-                return result;
-            },
+           login: async function() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
 
-            // 获取历史记录
-            getHistory: async function(userId) {
-                return this.request(`${API_CONFIG.endpoints.history}?userId=${userId}`, 'GET');
-            },
+    // 验证输入
+    let isValid = true;
+    if (!username) {
+        this.showError('loginUsernameError', '请输入用户名');
+        isValid = false;
+    } else {
+        this.hideError('loginUsernameError');
+    }
+
+    if (!password) {
+        this.showError('loginPasswordError', '请输入密码');
+        isValid = false;
+    } else {
+        this.hideError('loginPasswordError');
+    }
+
+    if (!isValid) return;
+
+    try {
+        APIService.showGlobalLoading('正在登录...');
+        const result = await APIService.login(username, password);
+        APIService.hideGlobalLoading();
+        
+        if (result.success) {
+            console.log('登录成功，服务器返回:', result);
+            
+            // 保存用户信息
+            const user = {
+                id: result.user.id,
+                username: result.user.username,
+                userType: result.user.user_type || result.user.userType,
+                trialCount: result.user.trial_count || 0,
+                trialEndDate: result.user.trial_end_date
+            };
+            
+            // 确保保存令牌
+            if (result.token) {
+                localStorage.setItem('authToken', result.token);
+                console.log('令牌已保存，长度:', result.token.length);
+            } else {
+                console.warn('服务器没有返回令牌');
+            }
+            
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            
+            // 更新UI
+            this.updateUI(user);
+            
+            // 隐藏模态框
+            this.hideAllModals();
+            
+            // 重新加载历史记录
+            await loadHistory();
+            
+            // 显示成功消息
+            alert(`欢迎回来，${user.username}！`);
+        } else {
+            console.log('登录失败:', result.error);
+            this.showError('loginPasswordError', result.error || '登录失败');
+        }
+    } catch (error) {
+        APIService.hideGlobalLoading();
+        console.error('登录异常:', error);
+        this.showError('loginPasswordError', '网络错误，请重试');
+    }
+},
+
+            getHistory: async function() {
+    // 注意：不需要传递 userId 参数，后端会从令牌中获取
+    return this.request(API_CONFIG.endpoints.history, 'GET', null, true); // requiresAuth = true
+},
 
             // 保存记录
             saveRecord: async function(record) {
@@ -1986,27 +2053,37 @@
 
         // ============== 主初始化函数 ============== //
         async function initializeApplication() {
-            console.log('=== 开始应用程序初始化 ===');
+    console.log('=== 开始应用程序初始化 ===');
 
-            // 第一步：测试服务器连接
-            try {
-                console.log('测试服务器连接...');
-                const testResult = await APIService.testConnection();
-                
-                if (testResult.success) {
-                    console.log('服务器连接成功:', testResult.message);
-                    document.getElementById('apiStatus').textContent = 'API状态: 正常连接';
-                    document.getElementById('apiStatus').style.color = '#28a745';
-                } else {
-                    console.warn('服务器连接警告:', testResult.error);
-                    document.getElementById('apiStatus').textContent = 'API状态: 连接异常';
-                    document.getElementById('apiStatus').style.color = '#dc3545';
-                }
-            } catch (error) {
-                console.error('服务器连接失败:', error);
-                document.getElementById('apiStatus').textContent = 'API状态: 无法连接';
-                document.getElementById('apiStatus').style.color = '#dc3545';
-            }
+    // 检查本地令牌
+    const token = localStorage.getItem('authToken');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    
+    console.log('本地用户状态:', currentUser ? `已登录(${currentUser.username})` : '未登录');
+    console.log('认证令牌:', token ? `有(${token.length}字符)` : '无');
+
+    // 第一步：测试服务器连接
+    try {
+        console.log('测试服务器连接...');
+        const testResult = await APIService.testConnection();
+        
+        if (testResult.success) {
+            console.log('服务器连接成功:', testResult.message);
+            document.getElementById('apiStatus').textContent = 'API状态: 正常连接';
+            document.getElementById('apiStatus').style.color = '#28a745';
+        } else {
+            console.warn('服务器连接警告:', testResult.error);
+            document.getElementById('apiStatus').textContent = 'API状态: 连接异常';
+            document.getElementById('apiStatus').style.color = '#dc3545';
+        }
+    } catch (error) {
+        console.error('服务器连接失败:', error);
+        document.getElementById('apiStatus').textContent = 'API状态: 无法连接';
+        document.getElementById('apiStatus').style.color = '#dc3545';
+    }
+
+ 
+
 
             // 第二步：初始化用户系统
             UserSystem.init();
@@ -2447,35 +2524,46 @@
             try {
                 let serverRecords = [];
                 let localRecords = [];
+                // 检查是否有认证令牌
+        const token = localStorage.getItem('authToken');
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                // 如果已登录且有令牌，尝试从服务器加载记录
+        if (currentUser && token) {
+            try {
+                console.log('尝试从服务器加载历史记录，用户ID:', currentUser.id);
                 
-                // 如果已登录，尝试从服务器加载记录
-                if (currentUser) {
-                    try {
-                        const result = await APIService.getHistory(currentUser.id);
-                        if (result.success && result.records) {
-                            serverRecords = result.records;
-                        }
-                    } catch (error) {
-                        console.log('从服务器加载记录失败，使用本地记录:', error);
-                    }
+                // 调用 API，不需要传递 userId 参数
+                const result = await APIService.getHistory();
+                
+                if (result.success && result.records) {
+                    serverRecords = result.records;
+                    console.log('从服务器加载了', serverRecords.length, '条记录');
+                } else {
+                    console.log('服务器返回失败:', result.error);
                 }
-                
-                // 加载本地记录
-                localRecords = StorageManager.getLocalRecords();
-                
-                // 移除加载状态
-                tableBody.innerHTML = '';
-                
-                // 合并记录（服务器记录优先）
-                const allRecords = [...serverRecords, ...localRecords];
-                
-                if (allRecords.length === 0) {
-                    const emptyRow = document.createElement('tr');
-                    emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
-                    tableBody.appendChild(emptyRow);
-                    updateChartData(allRecords);
-                    return;
-                }
+            } catch (error) {
+                console.log('从服务器加载记录失败，将使用本地记录:', error.message);
+            }
+        } else {
+            console.log('用户未登录或没有令牌，仅加载本地记录');
+        }
+        
+        // 加载本地记录
+        localRecords = StorageManager.getLocalRecords();
+        
+        // 移除加载状态
+        tableBody.innerHTML = '';
+        
+        // 合并记录（服务器记录优先）
+        const allRecords = [...serverRecords, ...localRecords];
+        
+        if (allRecords.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
+            tableBody.appendChild(emptyRow);
+            updateChartData(allRecords);
+            return;
+        }
                 
                 // 按创建时间倒序排列
                 allRecords.sort((a, b) => {
@@ -2914,3 +3002,4 @@
     </script>
 </body>
 </html>
+
