@@ -2467,7 +2467,7 @@ checkToken: function() {
         }
 
         // ============== 历史记录管理 ============== //
- async function loadHistory() {
+async function loadHistory() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const tableBody = document.getElementById('history-table-body');
     
@@ -2488,25 +2488,32 @@ checkToken: function() {
         let serverRecords = [];
         let localRecords = [];
         
-        // 如果已登录且有认证令牌，尝试从服务器加载记录
+        // 检查令牌有效性
         const token = localStorage.getItem('authToken');
-        if (currentUser && token) {
+        const isTokenValid = UserSystem.checkToken();
+        
+        if (currentUser && token && isTokenValid) {
             try {
-                // 修改这里：调用 getHistory() 时不传递 userId 参数
+                console.log('尝试从服务器加载历史记录...');
                 const result = await APIService.getHistory();
+                
                 if (result.success && result.records) {
                     serverRecords = result.records;
-                    console.log('从服务器加载了', serverRecords.length, '条记录');
+                    console.log(`从服务器成功加载了 ${serverRecords.length} 条记录`);
+                } else {
+                    console.log('服务器返回错误:', result.error);
                 }
             } catch (error) {
-                console.log('从服务器加载记录失败，使用本地记录:', error);
-                // 显示更详细的错误信息
-                if (error.message.includes('401') || error.message.includes('认证')) {
-                    console.log('认证失败，可能需要重新登录');
+                console.log('从服务器加载记录失败:', error);
+                if (error.message.includes('401') || error.message.includes('认证') || error.message.includes('令牌')) {
+                    console.log('认证失败，清除令牌并重新加载');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    UserSystem.showGuestUI();
                 }
             }
         } else {
-            console.log('用户未登录或缺少认证令牌，仅加载本地记录');
+            console.log('用户未登录或令牌无效，仅加载本地记录');
         }
         
         // 加载本地记录
@@ -2536,7 +2543,7 @@ checkToken: function() {
         // 渲染记录（保持原有代码不变）
         // ... 渲染代码保持不变 ...
         
-    } catch (error) {
+        } catch (error) {
         console.error('加载历史记录失败:', error);
         tableBody.innerHTML = '';
         const errorRow = document.createElement('tr');
@@ -2917,5 +2924,6 @@ checkToken: function() {
     </script>
 </body>
 </html>
+
 
 
