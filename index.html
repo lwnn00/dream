@@ -798,6 +798,27 @@
                         如果没有可用邀请码，您可以先试用（限18次记录）。
                     </div>
                 </div>
+                <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="btn" id="fileImportBtn" style="font-size: 20px;">
+                        📁 选择文件导入
+                    </button>
+                    <button type="button" class="btn btn-success" id="manualImportBtn" style="font-size: 20px;">
+                        ✍️ 手动输入邀请码
+                    </button>
+                    <button type="button" class="user-btn" id="refreshInviteListBtn" style="font-size: 20px;">
+                        🔄 刷新列表
+                    </button>
+                </div>
+
+                <!-- 文件分享说明 -->
+                <div
+                    style="font-size: 11px; color: #666; margin-top: 12px; line-height: 1.4; padding: 8px; background-color: #f5f5f5; border-radius: 6px;">
+                    <strong>使用说明：</strong>
+                    1. 从管理员处获取邀请码文件 (.dat)<br>
+                    2. 点击"导入文件"选择文件<br>
+                    3. 点击"刷新列表"查看可用邀请码<br>
+                    4. 选择邀请码完成注册
+                </div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-success" id="registerBtn">注册</button>
@@ -2649,3 +2670,4 @@
     </script>
 </body>
 </html>
+
