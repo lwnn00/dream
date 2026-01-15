@@ -330,7 +330,7 @@
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
+            overflow: visible;
         }
 
         header {
@@ -2108,8 +2108,15 @@ async function createTestData() {
             // 第五步：加载历史记录
             await loadHistory();
 
-            // 第六步：初始化图表
-            initChart();
+            // 第六步：确保历史记录默认显示
+    const historyContent = document.getElementById('history-content');
+    const toggleButton = document.getElementById('toggle-history');
+    
+    // 确保历史记录区域默认显示
+    historyContent.classList.remove('hidden');
+    toggleButton.textContent = '隐藏记录';
+    
+    console.log('✅ 历史记录区域默认显示');
 
             // 第七步：初始化事件监听器
             initEventListeners();
@@ -2971,6 +2978,7 @@ async function loadHistory() {
     </script>
 </body>
 </html>
+
 
 
 
