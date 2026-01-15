@@ -330,7 +330,7 @@
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            overflow: visible;
+            overflow: hidden;
         }
 
         header {
@@ -2107,28 +2107,9 @@ async function createTestData() {
 
             // 第五步：加载历史记录
             await loadHistory();
-            // 读取用户上次的偏好设置，默认显示
-    const historyVisible = localStorage.getItem('historyVisible') !== 'false';
-    const historyContent = document.getElementById('history-content');
-    const toggleButton = document.getElementById('toggle-history');
-    
-    if (historyVisible) {
-        historyContent.classList.remove('hidden');
-        toggleButton.textContent = '隐藏记录';
-    } else {
-        historyContent.classList.add('hidden');
-        toggleButton.textContent = '显示记录';
-    }
 
-            // 第六步：确保历史记录默认显示
-    const historyContent = document.getElementById('history-content');
-    const toggleButton = document.getElementById('toggle-history');
-    
-    // 确保历史记录区域默认显示
-    historyContent.classList.remove('hidden');
-    toggleButton.textContent = '隐藏记录';
-    
-    console.log('✅ 历史记录区域默认显示');
+            // 第六步：初始化图表
+            initChart();
 
             // 第七步：初始化事件监听器
             initEventListeners();
@@ -2958,19 +2939,17 @@ async function loadHistory() {
         }
 
         function toggleHistory() {
-    const historyContent = document.getElementById('history-content');
-    const toggleButton = document.getElementById('toggle-history');
-    
-    if (historyContent.classList.contains('hidden')) {
-        historyContent.classList.remove('hidden');
-        toggleButton.textContent = '隐藏记录';
-        localStorage.setItem('historyVisible', 'true');
-    } else {
-        historyContent.classList.add('hidden');
-        toggleButton.textContent = '显示记录';
-        localStorage.setItem('historyVisible', 'false');
-    }
-}
+            const historyContent = document.getElementById('history-content');
+            const toggleButton = document.getElementById('toggle-history');
+            
+            if (historyContent.classList.contains('hidden')) {
+                historyContent.classList.remove('hidden');
+                toggleButton.textContent = '隐藏记录';
+            } else {
+                historyContent.classList.add('hidden');
+                toggleButton.textContent = '显示记录';
+            }
+        }
 
         function clearHistory() {
             if (confirm('确定要清空所有历史记录吗？此操作不可撤销！')) {
@@ -2992,9 +2971,6 @@ async function loadHistory() {
     </script>
 </body>
 </html>
-
-
-
 
 
 
