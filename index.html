@@ -1212,49 +1212,83 @@
                 }, 3000);
             },
 
-            // 通用请求方法
-            async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
-                const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
-                const headers = {
-                    'Content-Type': 'application/json',
-                };
-                
-                // 添加认证头（如果需要）
-                if (requiresAuth) {
-                    const token = localStorage.getItem('authToken');
-                    if (token) {
-                        headers['Authorization'] = `Bearer ${token}`;
-                    }
-                }
-                
-                const options = {
-                    method,
-                    headers,
-                    body: data ? JSON.stringify(data) : null
-                };
-                
-                try {
-                    const response = await fetch(url, options);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
-                    }
-                    
-                    return await response.json();
-                } catch (error) {
-                    console.error(`API请求失败 (${endpoint}):`, error);
-                    
-                    // 检查网络状态
-                    if (!navigator.onLine) {
-                        this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
-                    } else if (error.message.includes('Failed to fetch')) {
-                        this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
-                    }
-                    
-                    throw error;
-                }
-            },
+            
+          // 通用请求方法
+async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
+    const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
+    console.log(`🌐 API请求: ${method} ${url}`);
+    
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    // 添加认证头（如果需要）
+    if (requiresAuth) {
+        const token = localStorage.getItem('authToken');
+        console.log('🔑 认证令牌:', token ? `存在 (${token.substring(0, 30)}...)` : '不存在');
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.warn('⚠️ 需要认证但未找到令牌');
+        }
+    }
+    
+    const options = {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : null
+    };
+    
+    try {
+        console.log('📤 发送请求...');
+        const response = await fetch(url, options);
+        console.log(`📥 响应状态: ${response.status} ${response.statusText}`);
+        
+        const responseText = await response.text();
+        console.log('📄 响应文本:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
+        
+        if (!response.ok) {
+            console.error(`❌ HTTP错误 ${response.status}:`, responseText);
+            throw new Error(`HTTP错误 ${response.status}: ${responseText}`);
+        }
+        
+        // 尝试解析JSON
+        try {
+            const jsonResponse = JSON.parse(responseText);
+            console.log('✅ JSON解析成功，数据:', {
+                success: jsonResponse.success,
+                count: jsonResponse.records ? jsonResponse.records.length : 0,
+                userId: jsonResponse.userId,
+                timestamp: jsonResponse.timestamp
+            });
+            
+            if (jsonResponse.records && jsonResponse.records.length > 0) {
+                console.log('📊 第一条记录:', jsonResponse.records[0]);
+            }
+            
+            return jsonResponse;
+        } catch (jsonError) {
+            console.error('❌ 响应JSON解析失败:', jsonError);
+            console.log('原始响应:', responseText);
+            throw new Error('响应JSON解析失败');
+        }
+        
+    } catch (error) {
+        console.error(`❌ API请求失败 (${endpoint}):`, error);
+        
+        // 检查网络状态
+        if (!navigator.onLine) {
+            console.log('🌐 网络已断开');
+            this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+        } else if (error.message.includes('Failed to fetch')) {
+            console.log('🔌 无法连接到服务器');
+            this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
+        }
+        
+        throw error;
+    }
+},
 
             // 测试服务器连接
             testConnection: async function() {
@@ -2515,7 +2549,14 @@ async function createTestData() {
 
         // ============== 历史记录管理 ============== //
 async function loadHistory() {
+    console.log('=== 开始加载历史记录 ===');
+    
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    console.log('👤 当前用户:', currentUser);
+    
+    const token = localStorage.getItem('authToken');
+    console.log('🔑 令牌存在:', !!token);
+    
     const tableBody = document.getElementById('history-table-body');
     
     // 清空现有内容
@@ -2535,44 +2576,51 @@ async function loadHistory() {
         let serverRecords = [];
         let localRecords = [];
         
-        // 检查令牌有效性
-        const token = localStorage.getItem('authToken');
-        const isTokenValid = UserSystem.checkToken();
-        
-        if (currentUser && token && isTokenValid) {
+        // 检查是否可以调用服务器API
+        if (currentUser && token) {
+            console.log('🌐 尝试从服务器API加载历史记录...');
             try {
-                console.log('尝试从服务器加载历史记录...');
                 const result = await APIService.getHistory();
+                console.log('📦 服务器响应:', result);
                 
                 if (result.success && result.records) {
                     serverRecords = result.records;
-                    console.log(`从服务器成功加载了 ${serverRecords.length} 条记录`);
+                    console.log(`✅ 从服务器成功加载了 ${serverRecords.length} 条记录`);
+                    
+                    // 验证记录结构
+                    if (serverRecords.length > 0) {
+                        const sample = serverRecords[0];
+                        console.log('📝 记录结构验证:', {
+                            hasId: !!sample.id,
+                            hasMatchName: !!sample.match_name,
+                            hasHandicapType: !!sample.handicap_type,
+                            hasCreatedAt: !!sample.created_at,
+                            fullSample: sample
+                        });
+                    }
                 } else {
-                    console.log('服务器返回错误:', result.error);
+                    console.log('❌ 服务器返回错误:', result.error);
                 }
             } catch (error) {
-                console.log('从服务器加载记录失败:', error);
-                if (error.message.includes('401') || error.message.includes('认证') || error.message.includes('令牌')) {
-                    console.log('认证失败，清除令牌并重新加载');
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('currentUser');
-                    UserSystem.showGuestUI();
-                }
+                console.log('⚠️ 从服务器加载记录失败:', error.message);
             }
         } else {
-            console.log('用户未登录或令牌无效，仅加载本地记录');
+            console.log('👥 用户未登录或令牌无效，仅加载本地记录');
         }
         
         // 加载本地记录
         localRecords = StorageManager.getLocalRecords();
+        console.log(`💾 本地记录数量: ${localRecords.length}`);
         
         // 移除加载状态
         tableBody.innerHTML = '';
         
         // 合并记录（服务器记录优先）
         const allRecords = [...serverRecords, ...localRecords];
+        console.log(`📊 总记录数量: ${allRecords.length}`);
         
         if (allRecords.length === 0) {
+            console.log('📭 没有任何记录，显示空状态');
             const emptyRow = document.createElement('tr');
             emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
             tableBody.appendChild(emptyRow);
@@ -2587,18 +2635,85 @@ async function loadHistory() {
             return dateB - dateA;
         });
         
-        // 渲染记录（保持原有代码不变）
-        // ... 渲染代码保持不变 ...
+        console.log('🎨 开始渲染记录到表格...');
         
-        } catch (error) {
-        console.error('加载历史记录失败:', error);
+        // 渲染记录
+        allRecords.forEach((record, index) => {
+            console.log(`🖼️ 渲染第 ${index + 1} 条记录:`, {
+                id: record.id,
+                match_name: record.match_name,
+                handicap_type: record.handicap_type
+            });
+            
+            const row = document.createElement('tr');
+            
+            // 处理数据，确保有默认值
+            const matchName = record.match_name || '未命名赛事';
+            const handicapType = record.handicap_type || 'asian';
+            const handicapChange = parseFloat(record.handicap_change) || 0;
+            const waterChange = parseFloat(record.water_change) || 0;
+            const historicalRecord = record.historical_record || 'loss';
+            const recommendation = record.recommendation || '无推荐';
+            const actualResult = record.actual_result || '';
+            const isLocal = record.id && record.id.toString().startsWith('local_');
+            
+            // 确定变化状态样式
+            const handicapChangeClass = handicapChange > 0 ? 'status-up' :
+                handicapChange < 0 ? 'status-down' : '';
+            const waterChangeClass = waterChange > 0 ? 'status-up' :
+                waterChange < 0 ? 'status-down' : '';
+            
+            // 盘口类型显示
+            const handicapTypeText = handicapType === 'asian' ? '让球盘' : '大小盘';
+            const handicapTypeClass = handicapType === 'asian' ? 'status-up' : 'status-down';
+            
+            // 存储标识
+            const storageBadge = isLocal ? 
+                '<span class="local-storage-badge">[本地]</span>' : 
+                '<span class="cloud-storage-badge">[云端]</span>';
+            
+            // 创建HTML
+            row.innerHTML = `
+                <td>${matchName} ${storageBadge}</td>
+                <td class="${handicapTypeClass}">${handicapTypeText}</td>
+                <td class="${handicapChangeClass}">${handicapChange > 0 ? '↑ ' : handicapChange < 0 ? '↓ ' : ''}${Math.abs(handicapChange).toFixed(2)}</td>
+                <td class="${waterChangeClass}">${waterChange > 0 ? '↑ ' : waterChange < 0 ? '↓ ' : ''}${Math.abs(waterChange).toFixed(2)}</td>
+                <td>${historicalRecord === 'win' ? '赢' : '输'}</td>
+                <td>${recommendation}</td>
+                <td>
+                    <select class="actual-result-select" data-id="${record.id}" data-is-local="${isLocal}" style="width: 70px; padding: 6px; font-size: 12px;">
+                        <option value="">选择</option>
+                        <option value="win" ${actualResult === 'win' ? 'selected' : ''}>赢</option>
+                        <option value="loss" ${actualResult === 'loss' ? 'selected' : ''}>输</option>
+                    </select>
+                </td>
+                <td style="white-space: nowrap;">
+                    <button class="record-action record-edit" data-id="${record.id}" data-is-local="${isLocal}">编辑</button>
+                    <button class="record-action record-delete" data-id="${record.id}" data-is-local="${isLocal}">删除</button>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+        
+        console.log('✅ 记录渲染完成');
+        
+        // 添加事件监听器
+        addHistoryEventListeners();
+        
+        // 更新图表数据
+        updateChartData(allRecords);
+        
+        console.log('=== 历史记录加载完成 ===');
+        
+    } catch (error) {
+        console.error('❌ 加载历史记录失败:', error);
         tableBody.innerHTML = '';
         const errorRow = document.createElement('tr');
         errorRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">加载失败: ${error.message}</td>`;
         tableBody.appendChild(errorRow);
     }
 }
-
         function addHistoryEventListeners() {
             // 实际结果选择
             document.querySelectorAll('.actual-result-select').forEach(select => {
