@@ -6,106 +6,54 @@
     <title>足球让球/大小盘口记录软件</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* 样式部分保持不变，与原始代码相同 */
-        .handicap-tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eaeaea;
+        /* 基础样式 */
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .handicap-tab {
-            flex: 1;
-            padding: 12px 16px;
-            background: #f5f5f5;
-            border: none;
-            border-radius: 8px 8px 0 0;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-right: 4px;
-            color: #666;
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 10px;
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-text-size-adjust: 100%;
         }
 
-        .handicap-tab.active {
-            background: #2a5298;
-            color: white;
-        }
-
-        .handicap-tab:last-child {
-            margin-right: 0;
-        }
-
-        .handicap-content {
-            display: none;
-        }
-
-        .handicap-content.active {
-            display: block;
-        }
-
-        .size-recommendation-up {
-            color: #28a745;
-            background-color: rgba(40, 167, 69, 0.08);
-            border: 2px solid #28a745;
-        }
-
-        .size-recommendation-down {
-            color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.08);
-            border: 2px solid #dc3545;
-        }
-
-        .size-recommendation-neutral {
-            color: #6c757d;
-            background-color: rgba(108, 117, 125, 0.08);
-            border: 2px solid #6c757d;
-        }
-
-        .recommendation-label {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 10px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .recommendation-label i {
-            margin-right: 8px;
-            font-size: 18px;
-        }
-
-        .dual-recommendation {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .recommendation-box {
-            flex: 1;
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
             background-color: white;
-            border-radius: 10px;
-            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        /* 头部样式 */
+        header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 16px 20px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            position: relative;
         }
 
-        /* 调整历史表格列宽 */
-        .history-table th:nth-child(1) {
-            width: 120px;
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
         }
 
-        .history-table th:nth-child(2) {
-            width: 80px;
+        .subtitle {
+            opacity: 0.85;
+            font-size: 13px;
+            margin-top: 4px;
         }
 
-        .history-table th:nth-child(3) {
-            width: 100px;
-        }
-
-        /* 原有样式保持不变，只添加新增部分 */
+        /* 用户信息区域 */
         .user-section {
             position: absolute;
             top: 16px;
@@ -150,6 +98,364 @@
             background-color: rgba(255, 255, 255, 0.3);
         }
 
+        /* 主要内容区域 */
+        .main-content {
+            padding: 15px;
+        }
+
+        .input-section,
+        .result-section,
+        .history-section {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-section {
+            background-color: #f9f9f9;
+            border: 1px solid #eaeaea;
+        }
+
+        .result-section {
+            background-color: #f0f7ff;
+            border: 1px solid #cce0ff;
+        }
+
+        .history-section {
+            background-color: #fff9e6;
+            border: 1px solid #ffeaa7;
+        }
+
+        .section-title {
+            font-size: 17px;
+            color: #1e3c72;
+            margin-top: 0;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(30, 60, 114, 0.15);
+            font-weight: 600;
+        }
+
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #444;
+            font-size: 14px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+            background-color: white;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
+        }
+
+        /* 下拉选择框优化 */
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            background-color: #2a5298;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 8px;
+            margin-top: 8px;
+            width: 100%;
+            display: block;
+        }
+
+        .btn:hover,
+        .btn:active {
+            background-color: #1e3c72;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover,
+        .btn-secondary:active {
+            background-color: #5a6268;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover,
+        .btn-success:active {
+            background-color: #218838;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover,
+        .btn-danger:active {
+            background-color: #c82333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            margin: 0;
+            padding: 12px 10px;
+        }
+
+        /* 盘口标签页 */
+        .handicap-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eaeaea;
+        }
+
+        .handicap-tab {
+            flex: 1;
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 4px;
+            color: #666;
+        }
+
+        .handicap-tab.active {
+            background: #2a5298;
+            color: white;
+        }
+
+        .handicap-content {
+            display: none;
+        }
+
+        .handicap-content.active {
+            display: block;
+        }
+
+        /* 推荐结果区域 */
+        .dual-recommendation {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .recommendation-box {
+            flex: 1;
+            background-color: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .recommendation-label {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recommendation-result {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .recommendation-up {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.08);
+            border: 2px solid #28a745;
+        }
+
+        .recommendation-down {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.08);
+            border: 2px solid #dc3545;
+        }
+
+        .recommendation-neutral {
+            color: #6c757d;
+            background-color: rgba(108, 117, 125, 0.08);
+            border: 2px solid #6c757d;
+        }
+
+        .size-recommendation-up {
+            color: #28a745;
+            background-color: rgba(40, 167, 69, 0.08);
+            border: 2px solid #28a745;
+        }
+
+        .size-recommendation-down {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.08);
+            border: 2px solid #dc3545;
+        }
+
+        .size-recommendation-neutral {
+            color: #6c757d;
+            background-color: rgba(108, 117, 125, 0.08);
+            border: 2px solid #6c757d;
+        }
+
+        /* 图表区域 */
+        .chart-container {
+            width: 100%;
+            height: 280px;
+            margin-top: 15px;
+        }
+
+        /* 历史记录区域 */
+        .history-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .history-table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            min-width: 600px;
+        }
+
+        .history-table th {
+            background-color: #1e3c72;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .history-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .history-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* 调整历史表格列宽 */
+        .history-table th:nth-child(1) { width: 120px; }
+        .history-table th:nth-child(2) { width: 80px; }
+        .history-table th:nth-child(3) { width: 100px; }
+
+        /* 状态样式 */
+        .status-up {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .status-down {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        /* 记录操作按钮 */
+        .record-action {
+            padding: 6px 10px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .record-edit {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .record-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* 试用信息 */
+        .trial-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .trial-count {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        /* 模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -174,15 +480,8 @@
         }
 
         @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .modal-header {
@@ -263,6 +562,7 @@
             text-decoration: underline;
         }
 
+        /* 错误信息 */
         .error-message {
             color: #dc3545;
             font-size: 13px;
@@ -270,304 +570,7 @@
             display: none;
         }
 
-        .trial-info {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .trial-count {
-            font-weight: bold;
-            color: #e74c3c;
-        }
-
-        .admin-link {
-            position: absolute;
-            top: 16px;
-            left: 20px;
-        }
-
-        .admin-btn {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .admin-btn:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-        /* 原有样式保持不变 */
-        * {
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            margin: 0;
-            padding: 10px;
-            line-height: 1.5;
-            font-size: 14px;
-            -webkit-text-size-adjust: 100%;
-        }
-
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            padding: 16px 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .subtitle {
-            opacity: 0.85;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        .main-content {
-            padding: 15px;
-        }
-
-        .input-section,
-        .result-section,
-        .history-section {
-            padding: 16px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        .input-section {
-            background-color: #f9f9f9;
-            border: 1px solid #eaeaea;
-        }
-
-        .result-section {
-            background-color: #f0f7ff;
-            border: 1px solid #cce0ff;
-        }
-
-        .history-section {
-            background-color: #fff9e6;
-            border: 1px solid #ffeaa7;
-        }
-
-        .section-title {
-            font-size: 17px;
-            color: #1e3c72;
-            margin-top: 0;
-            margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(30, 60, 114, 0.15);
-            font-weight: 600;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: #444;
-            font-size: 14px;
-        }
-
-        select,
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 15px;
-            transition: border-color 0.2s;
-            background-color: white;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        select:focus,
-        input:focus {
-            outline: none;
-            border-color: #2a5298;
-            box-shadow: 0 0 0 2px rgba(42, 82, 152, 0.1);
-        }
-
-        .btn {
-            background-color: #2a5298;
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            transition: all 0.2s;
-            margin-right: 8px;
-            margin-top: 8px;
-            width: 100%;
-            display: block;
-        }
-
-        .btn:hover,
-        .btn:active {
-            background-color: #1e3c72;
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-        }
-
-        .btn-secondary:hover,
-        .btn-secondary:active {
-            background-color: #5a6268;
-        }
-
-        .btn-success {
-            background-color: #28a745;
-        }
-
-        .btn-success:hover,
-        .btn-success:active {
-            background-color: #218838;
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-        }
-
-        .btn-danger:hover,
-        .btn-danger:active {
-            background-color: #c82333;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-        }
-
-        .button-group .btn {
-            flex: 1;
-            margin: 0;
-            padding: 12px 10px;
-        }
-
-        .chart-container {
-            width: 100%;
-            height: 280px;
-            margin-top: 15px;
-        }
-
-        .history-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .history-table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            border-radius: 8px;
-            border: 1px solid #eee;
-        }
-
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            min-width: 600px;
-        }
-
-        .history-table th {
-            background-color: #1e3c72;
-            color: white;
-            padding: 12px 10px;
-            text-align: left;
-            font-size: 13px;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-
-        .history-table td {
-            padding: 10px;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 13px;
-        }
-
-        .history-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .history-table tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .status-up {
-            color: #28a745;
-            font-weight: 600;
-        }
-
-        .status-down {
-            color: #dc3545;
-            font-weight: 600;
-        }
-
-        .record-action {
-            padding: 6px 10px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .record-edit {
-            background-color: #ffc107;
-            color: #212529;
-        }
-
-        .record-delete {
-            background-color: #dc3545;
-            color: white;
-        }
-
+        /* 自动计算提示 */
         .auto-calculation-note {
             font-size: 13px;
             color: #666;
@@ -577,165 +580,12 @@
             line-height: 1.4;
         }
 
-        footer {
-            text-align: center;
-            padding: 16px;
-            color: #666;
-            font-size: 12px;
-            border-top: 1px solid #eee;
-            background-color: #f9f9f9;
-            line-height: 1.4;
-        }
-
-        /* 移动端优化 */
-        @media (max-width: 768px) {
-            body {
-                padding: 8px;
-            }
-
-            .main-content {
-                padding: 12px;
-            }
-
-            .input-section,
-            .result-section,
-            .history-section {
-                padding: 14px;
-                margin-bottom: 12px;
-            }
-
-            .section-title {
-                font-size: 16px;
-                margin-bottom: 14px;
-            }
-
-            select,
-            input {
-                padding: 14px;
-                font-size: 16px;
-                /* 增加字体大小便于触摸 */
-            }
-
-            .btn {
-                padding: 16px;
-                font-size: 16px;
-            }
-
-            .recommendation-result {
-                font-size: 24px;
-                padding: 16px;
-            }
-
-            .chart-container {
-                height: 250px;
-            }
-
-            .history-table th,
-            .history-table td {
-                padding: 8px 6px;
-                font-size: 12px;
-            }
-
-            .user-section {
-                position: static;
-                margin-top: 15px;
-                justify-content: center;
-            }
-
-            .admin-link {
-                position: static;
-                margin-bottom: 10px;
-                text-align: center;
-            }
-
-            .handicap-tab {
-                padding: 10px 12px;
-                font-size: 14px;
-            }
-
-            .dual-recommendation {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .history-table {
-                min-width: 700px;
-            }
-        }
-
-        /* 小屏幕手机优化 */
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 18px;
-            }
-
-            .subtitle {
-                font-size: 12px;
-            }
-
-            .recommendation-result {
-                font-size: 22px;
-                padding: 14px;
-            }
-
-            .chart-container {
-                height: 220px;
-            }
-
-            .button-group {
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            .history-table th {
-                font-size: 12px;
-                padding: 10px 6px;
-            }
-
-            .history-table td {
-                font-size: 11px;
-                padding: 8px 5px;
-            }
-
-            .modal-content {
-                padding: 20px;
-                width: 95%;
-            }
-
-            .modal-buttons {
-                flex-direction: column;
-            }
-        }
-
-        /* 防止iOS safari的缩放 */
-        input,
-        select,
-        textarea {
-            font-size: 16px !important;
-        }
-
-        /* 触摸反馈优化 */
-        .btn:active,
-        .record-action:active {
-            transform: scale(0.98);
-            transition: transform 0.1s;
-        }
-
-        /* 下拉选择框优化 */
-        select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-            padding-right: 40px;
-        }
-        
-        /* 新增加载动画样式 */
+        /* 加载动画 */
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         .spinner {
             display: inline-block;
             width: 16px;
@@ -745,7 +595,7 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         .loading-overlay {
             display: none;
             position: fixed;
@@ -760,43 +610,12 @@
             flex-direction: column;
             color: white;
         }
-        
+
         .loading-text {
             margin-top: 15px;
             font-size: 16px;
         }
-        
-        .recommendation-result {
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            transition: all 0.3s;
-        }
-        
-        .recommendation-up {
-            color: #28a745;
-            background-color: rgba(40, 167, 69, 0.08);
-            border: 2px solid #28a745;
-        }
-        
-        .recommendation-down {
-            color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.08);
-            border: 2px solid #dc3545;
-        }
-        
-        .recommendation-neutral {
-            color: #6c757d;
-            background-color: rgba(108, 117, 125, 0.08);
-            border: 2px solid #6c757d;
-        }
-        
+
         /* 网络状态指示器 */
         .network-status {
             position: fixed;
@@ -809,30 +628,97 @@
             z-index: 1001;
             display: none;
         }
-        
+
         .network-online {
             background-color: rgba(40, 167, 69, 0.9);
             color: white;
         }
-        
+
         .network-offline {
             background-color: rgba(220, 53, 69, 0.9);
             color: white;
         }
-        
-        /* 本地存储标识 */
+
+        /* 存储标识 */
         .local-storage-badge {
             color: #dc3545;
             font-size: 10px;
             margin-left: 5px;
             font-weight: bold;
         }
-        
+
         .cloud-storage-badge {
             color: #28a745;
             font-size: 10px;
             margin-left: 5px;
             font-weight: bold;
+        }
+
+        /* 隐藏类 */
+        .hidden {
+            display: none;
+        }
+
+        /* 页脚 */
+        footer {
+            text-align: center;
+            padding: 16px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            background-color: #f9f9f9;
+            line-height: 1.4;
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .main-content { padding: 12px; }
+            .input-section,
+            .result-section,
+            .history-section {
+                padding: 14px;
+                margin-bottom: 12px;
+            }
+            .section-title { font-size: 16px; margin-bottom: 14px; }
+            select, input { padding: 14px; font-size: 16px; }
+            .btn { padding: 16px; font-size: 16px; }
+            .recommendation-result { font-size: 24px; padding: 16px; }
+            .chart-container { height: 250px; }
+            .history-table th,
+            .history-table td { padding: 8px 6px; font-size: 12px; }
+            .user-section {
+                position: static;
+                margin-top: 15px;
+                justify-content: center;
+            }
+            .handicap-tab { padding: 10px 12px; font-size: 14px; }
+            .dual-recommendation { flex-direction: column; gap: 10px; }
+            .history-table { min-width: 700px; }
+        }
+
+        /* 小屏幕手机优化 */
+        @media (max-width: 480px) {
+            h1 { font-size: 18px; }
+            .subtitle { font-size: 12px; }
+            .recommendation-result { font-size: 22px; padding: 14px; }
+            .chart-container { height: 220px; }
+            .button-group { flex-direction: column; gap: 6px; }
+            .history-table th { font-size: 12px; padding: 10px 6px; }
+            .history-table td { font-size: 11px; padding: 8px 5px; }
+            .modal-content { padding: 20px; width: 95%; }
+            .modal-buttons { flex-direction: column; }
+        }
+
+        /* 防止iOS safari的缩放 */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+
+        /* 触摸反馈优化 */
+        .btn:active, .record-action:active {
+            transform: scale(0.98);
+            transition: transform 0.1s;
         }
     </style>
 </head>
@@ -912,28 +798,6 @@
                         如果没有可用邀请码，您可以先试用（限18次记录）。
                     </div>
                 </div>
-
-                <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <button type="button" class="btn" id="fileImportBtn" style="font-size: 20px;">
-                        📁 选择文件导入
-                    </button>
-                    <button type="button" class="btn btn-success" id="manualImportBtn" style="font-size: 20px;">
-                        ✍️ 手动输入邀请码
-                    </button>
-                    <button type="button" class="user-btn" id="refreshInviteListBtn" style="font-size: 20px;">
-                        🔄 刷新列表
-                    </button>
-                </div>
-
-                <!-- 文件分享说明 -->
-                <div
-                    style="font-size: 11px; color: #666; margin-top: 12px; line-height: 1.4; padding: 8px; background-color: #f5f5f5; border-radius: 6px;">
-                    <strong>使用说明：</strong>
-                    1. 从管理员处获取邀请码文件 (.dat)<br>
-                    2. 点击"导入文件"选择文件<br>
-                    3. 点击"刷新列表"查看可用邀请码<br>
-                    4. 选择邀请码完成注册
-                </div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-success" id="registerBtn">注册</button>
@@ -974,7 +838,6 @@
             <div id="asian-handicap-content" class="handicap-content active">
                 <div class="input-section">
                     <h2 class="section-title">让球盘数据录入</h2>
-                    <!-- 新增赛事名称输入框 -->
                     <div class="form-group">
                         <label for="asian-match-name">赛事名称</label>
                         <input type="text" id="asian-match-name" placeholder="请输入赛事名称，例如：曼城 vs 利物浦">
@@ -1027,7 +890,6 @@
             <div id="over-under-content" class="handicap-content">
                 <div class="input-section">
                     <h2 class="section-title">大小盘数据录入</h2>
-                    <!-- 新增赛事名称输入框 -->
                     <div class="form-group">
                         <label for="size-match-name">赛事名称</label>
                         <input type="text" id="size-match-name" placeholder="请输入赛事名称，例如：曼城 vs 利物浦">
@@ -1084,27 +946,14 @@
                         <div id="asian-recommendation-result" class="recommendation-result recommendation-neutral">
                             等待输入中....
                         </div>
-                        <div id="asian-recommendation-details"
-                            style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
-                        <div id="asian-loading" style="display: none; margin-top: 10px;">
-                            <div style="font-size: 12px; color: #666; text-align: center;">
-                                <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                正在计算推荐结果...
-                            </div>
-                        </div>
+                        <div id="asian-recommendation-details" style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
                     </div>
                     <div class="recommendation-box">
                         <div class="recommendation-label">大小盘推荐</div>
-                        <div id="size-recommendation-result"
-                            class="recommendation-result size-recommendation-neutral">等待输入中....</div>
-                        <div id="size-recommendation-details"
-                            style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
-                        <div id="size-loading" style="display: none; margin-top: 10px;">
-                            <div style="font-size: 12px; color: #666; text-align: center;">
-                                <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                正在计算推荐结果...
-                            </div>
+                        <div id="size-recommendation-result" class="recommendation-result size-recommendation-neutral">
+                            等待输入中....
                         </div>
+                        <div id="size-recommendation-details" style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -1115,12 +964,9 @@
                 <div class="history-controls">
                     <h2 class="section-title">历史记录</h2>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-secondary" id="toggle-history"
-                            style="padding: 8px 12px; font-size: 13px;">隐藏记录</button>
-                        <button class="btn btn-danger" id="clear-history"
-                            style="padding: 8px 12px; font-size: 13px;">清空记录</button>
-                        <button class="btn btn-success" id="sync-history"
-                            style="padding: 8px 12px; font-size: 13px;">同步数据</button>
+                        <button class="btn btn-secondary" id="toggle-history" style="padding: 8px 12px; font-size: 13px;">隐藏记录</button>
+                        <button class="btn btn-danger" id="clear-history" style="padding: 8px 12px; font-size: 13px;">清空记录</button>
+                        <button class="btn btn-success" id="sync-history" style="padding: 8px 12px; font-size: 13px;">同步数据</button>
                     </div>
                 </div>
                 <div id="history-content">
@@ -1128,7 +974,6 @@
                         <table class="history-table">
                             <thead>
                                 <tr>
-                                    <!-- 新增赛事名称列 -->
                                     <th>赛事名称</th>
                                     <th>盘口类型</th>
                                     <th>盘口变化</th>
@@ -1154,34 +999,36 @@
     </div>
 
     <script>
+        // ============== 全局配置 ============== //
+        const IS_DEVELOPMENT = window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1' ||
+                             window.location.hostname.includes('vercel.app');
+
         // ============== 服务器API配置 ============== //
         const API_CONFIG = {
-             // 根据部署环境自动选择API地址
-  getBaseUrl: function() {
-    // 如果是本地开发环境
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3000';
-    }
-    // 生产环境 - 使用完整的后端API地址
-    // 注意：替换为你实际的Vercel部署地址
-    return 'https://footballdream.vercel.app';
-  },
-  
-  // 推荐API端点
-  endpoints: {
-    register: '/api/register',
-    login: '/api/login',
-    history: '/api/history',
-    records: '/api/records',
-    asianRecommendation: '/api/recommend/asian',
-    sizeRecommendation: '/api/recommend/size',
-    invitationCodes: '/api/invitation-codes',
-    test: '/api/test',
-    stats: '/api/stats',
-    userInfo: '/api/user/info',
-    sync: '/api/sync'
-  }
-};
+            getBaseUrl: function() {
+                // 如果是本地开发环境
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return 'http://localhost:3000';
+                }
+                // 生产环境
+                return 'https://footballdream.vercel.app';
+            },
+            
+            endpoints: {
+                register: '/api/register',
+                login: '/api/login',
+                history: '/api/history',
+                records: '/api/records',
+                asianRecommendation: '/api/recommend/asian',
+                sizeRecommendation: '/api/recommend/size',
+                invitationCodes: '/api/invitation-codes',
+                test: '/api/test',
+                stats: '/api/stats',
+                userInfo: '/api/user/info',
+                sync: '/api/sync'
+            }
+        };
 
         // ============== API服务 ============== //
         const APIService = {
@@ -1212,83 +1059,68 @@
                 }, 3000);
             },
 
-            
-          // 通用请求方法
-async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
-    const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
-    console.log(`🌐 API请求: ${method} ${url}`);
-    
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-    
-    // 添加认证头（如果需要）
-    if (requiresAuth) {
-        const token = localStorage.getItem('authToken');
-        console.log('🔑 认证令牌:', token ? `存在 (${token.substring(0, 30)}...)` : '不存在');
-        
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            console.warn('⚠️ 需要认证但未找到令牌');
-        }
-    }
-    
-    const options = {
-        method,
-        headers,
-        body: data ? JSON.stringify(data) : null
-    };
-    
-    try {
-        console.log('📤 发送请求...');
-        const response = await fetch(url, options);
-        console.log(`📥 响应状态: ${response.status} ${response.statusText}`);
-        
-        const responseText = await response.text();
-        console.log('📄 响应文本:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
-        
-        if (!response.ok) {
-            console.error(`❌ HTTP错误 ${response.status}:`, responseText);
-            throw new Error(`HTTP错误 ${response.status}: ${responseText}`);
-        }
-        
-        // 尝试解析JSON
-        try {
-            const jsonResponse = JSON.parse(responseText);
-            console.log('✅ JSON解析成功，数据:', {
-                success: jsonResponse.success,
-                count: jsonResponse.records ? jsonResponse.records.length : 0,
-                userId: jsonResponse.userId,
-                timestamp: jsonResponse.timestamp
-            });
-            
-            if (jsonResponse.records && jsonResponse.records.length > 0) {
-                console.log('📊 第一条记录:', jsonResponse.records[0]);
-            }
-            
-            return jsonResponse;
-        } catch (jsonError) {
-            console.error('❌ 响应JSON解析失败:', jsonError);
-            console.log('原始响应:', responseText);
-            throw new Error('响应JSON解析失败');
-        }
-        
-    } catch (error) {
-        console.error(`❌ API请求失败 (${endpoint}):`, error);
-        
-        // 检查网络状态
-        if (!navigator.onLine) {
-            console.log('🌐 网络已断开');
-            this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
-        } else if (error.message.includes('Failed to fetch')) {
-            console.log('🔌 无法连接到服务器');
-            this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
-        }
-        
-        throw error;
-    }
-},
+            // 通用请求方法
+            async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
+                const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
+                
+                if (IS_DEVELOPMENT) {
+                    console.log(`API请求: ${method} ${endpoint}`);
+                }
+                
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                
+                // 添加认证头
+                if (requiresAuth) {
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    } else if (IS_DEVELOPMENT) {
+                        console.warn('需要认证但未找到令牌');
+                    }
+                }
+                
+                const options = {
+                    method,
+                    headers,
+                    body: data ? JSON.stringify(data) : null
+                };
+                
+                try {
+                    const response = await fetch(url, options);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        if (IS_DEVELOPMENT) {
+                            console.error(`HTTP错误 ${response.status}:`, errorText);
+                        }
+                        throw new Error(`HTTP错误 ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (IS_DEVELOPMENT && endpoint === API_CONFIG.endpoints.history) {
+                        console.log(`历史记录加载: ${result.records ? result.records.length : 0} 条`);
+                    }
+                    
+                    return result;
+                    
+                } catch (error) {
+                    if (IS_DEVELOPMENT) {
+                        console.error(`API请求失败 (${endpoint}):`, error);
+                    }
+                    
+                    // 检查网络状态
+                    if (!navigator.onLine) {
+                        this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+                    } else if (error.message.includes('Failed to fetch')) {
+                        this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
+                    }
+                    
+                    throw error;
+                }
+            },
 
             // 测试服务器连接
             testConnection: async function() {
@@ -1296,7 +1128,9 @@ async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
                     const response = await this.request(API_CONFIG.endpoints.test);
                     return response;
                 } catch (error) {
-                    console.error('服务器连接测试失败:', error);
+                    if (IS_DEVELOPMENT) {
+                        console.error('服务器连接测试失败:', error);
+                    }
                     return { success: false, error: error.message };
                 }
             },
@@ -1325,12 +1159,10 @@ async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
                 return result;
             },
 
-            // 在 APIService 对象中，修改 getHistory 方法：
-getHistory: async function(userId) {
-    // 注意：这里需要传递 userId 作为参数，但后端需要从令牌中获取用户ID
-    // 实际上应该不需要传递 userId，因为后端会从令牌中获取
-    return this.request(API_CONFIG.endpoints.history, 'GET', null, true); // requiresAuth = true
-},
+            // 获取历史记录
+            getHistory: async function() {
+                return this.request(API_CONFIG.endpoints.history, 'GET', null, true);
+            },
 
             // 保存记录
             saveRecord: async function(record) {
@@ -1350,14 +1182,6 @@ getHistory: async function(userId) {
             // 获取邀请码
             getInvitationCodes: async function() {
                 return this.request(API_CONFIG.endpoints.invitationCodes, 'GET');
-            },
-
-            // 导入邀请码
-            importInvitationCodes: async function(codes, createdBy = 'admin') {
-                return this.request(API_CONFIG.endpoints.invitationCodes, 'POST', {
-                    codes,
-                    createdBy
-                });
             },
 
             // 获取让球盘推荐
@@ -1423,25 +1247,16 @@ getHistory: async function(userId) {
         const UserSystem = {
             // 初始化用户数据
             init: function() {
-                console.log('开始初始化用户系统...');
-
-                // 初始化默认用户
-                if (!localStorage.getItem('users')) {
-                    const defaultUsers = [{
-                        id: 1,
-                        username: 'admin',
-                        password: 'admin123',
-                        userType: 'admin',
-                        registrationDate: new Date().toISOString(),
-                        lastLogin: new Date().toISOString()
-                    }];
-                    localStorage.setItem('users', JSON.stringify(defaultUsers));
+                if (IS_DEVELOPMENT) {
+                    console.log('开始初始化用户系统...');
                 }
 
                 // 检查登录状态
                 this.checkLoginStatus();
 
-                console.log('用户系统初始化完成');
+                if (IS_DEVELOPMENT) {
+                    console.log('用户系统初始化完成');
+                }
             },
 
             // 检查登录状态
@@ -1451,7 +1266,6 @@ getHistory: async function(userId) {
                     this.updateUI(currentUser);
                     
                     // 更新试用信息显示
-                    
                     if (currentUser.userType === 'trial') {
                         this.updateTrialInfo(currentUser.username);
                     }
@@ -1498,9 +1312,6 @@ getHistory: async function(userId) {
                 if (trialInfoElement) {
                     trialInfoElement.innerHTML = `
                         您是试用用户，剩余保存次数: <span class="trial-count">${remaining}</span> 次
-                        <div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">
-                            当前使用本地存储 | 已使用: ${usedCount}次
-                        </div>
                     `;
                 }
             },
@@ -1538,8 +1349,6 @@ getHistory: async function(userId) {
             updateTrialInfo: function(username) {
                 const trialCountElement = document.getElementById('trialCount');
                 if (trialCountElement) {
-                    // 从服务器获取试用信息
-                    // 这里需要调用API获取用户的试用次数
                     // 暂时显示默认值
                     trialCountElement.textContent = '18';
                 }
@@ -1571,72 +1380,68 @@ getHistory: async function(userId) {
 
             // 登录
             login: async function() {
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
 
-    // 验证输入
-    let isValid = true;
-    if (!username) {
-        this.showError('loginUsernameError', '请输入用户名');
-        isValid = false;
-    } else {
-        this.hideError('loginUsernameError');
-    }
+                // 验证输入
+                let isValid = true;
+                if (!username) {
+                    this.showError('loginUsernameError', '请输入用户名');
+                    isValid = false;
+                } else {
+                    this.hideError('loginUsernameError');
+                }
 
-    if (!password) {
-        this.showError('loginPasswordError', '请输入密码');
-        isValid = false;
-    } else {
-        this.hideError('loginPasswordError');
-    }
+                if (!password) {
+                    this.showError('loginPasswordError', '请输入密码');
+                    isValid = false;
+                } else {
+                    this.hideError('loginPasswordError');
+                }
 
-    if (!isValid) return;
+                if (!isValid) return;
 
-    try {
-        APIService.showGlobalLoading('正在登录...');
-        const result = await APIService.login(username, password);
-        APIService.hideGlobalLoading();
-        
-        if (result.success) {
-            // 保存用户信息
-            const user = {
-                id: result.user.id,
-                username: result.user.username,
-                userType: result.user.user_type || result.user.userType,
-                trialCount: result.user.trial_count || 0,
-                trialEndDate: result.user.trial_end_date
-            };
-            
-            // 确保保存令牌（关键）
-            if (result.token) {
-                localStorage.setItem('authToken', result.token);
-                console.log('登录成功，令牌已保存');
-            } else {
-                console.warn('登录成功，但未收到令牌');
-            }
-            
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            
-            // 更新UI
-            this.updateUI(user);
-            
-            // 隐藏模态框
-            this.hideAllModals();
-            
-            // 重新加载历史记录
-            await loadHistory();
-            
-            // 显示成功消息
-            alert(`欢迎回来，${user.username}！`);
-        } else {
-            this.showError('loginPasswordError', result.error || '登录失败');
-        }
-    } catch (error) {
-        APIService.hideGlobalLoading();
-        this.showError('loginPasswordError', '网络错误，请重试');
-        console.error('登录错误:', error);
-    }
-},
+                try {
+                    APIService.showGlobalLoading('正在登录...');
+                    const result = await APIService.login(username, password);
+                    APIService.hideGlobalLoading();
+                    
+                    if (result.success) {
+                        // 保存用户信息
+                        const user = {
+                            id: result.user.id,
+                            username: result.user.username,
+                            userType: result.user.user_type || result.user.userType,
+                            trialCount: result.user.trial_count || 0,
+                            trialEndDate: result.user.trial_end_date
+                        };
+                        
+                        // 确保保存令牌
+                        if (result.token) {
+                            localStorage.setItem('authToken', result.token);
+                        }
+                        
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        
+                        // 更新UI
+                        this.updateUI(user);
+                        
+                        // 隐藏模态框
+                        this.hideAllModals();
+                        
+                        // 重新加载历史记录
+                        await loadHistory();
+                        
+                        // 显示成功消息
+                        alert(`欢迎回来，${user.username}！`);
+                    } else {
+                        this.showError('loginPasswordError', result.error || '登录失败');
+                    }
+                } catch (error) {
+                    APIService.hideGlobalLoading();
+                    this.showError('loginPasswordError', '网络错误，请重试');
+                }
+            },
 
             // 注册
             register: async function() {
@@ -1721,30 +1526,7 @@ getHistory: async function(userId) {
                 loadHistory();
                 alert('已退出登录');
             },
-            // 在 UserSystem 对象中添加
-checkToken: function() {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        console.log('未找到认证令牌');
-        return false;
-    }
-    
-    // 简单的令牌检查（可以添加JWT解析验证）
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) {
-            console.log('令牌格式错误');
-            localStorage.removeItem('authToken');
-            return false;
-        }
-        console.log('令牌有效');
-        return true;
-    } catch (error) {
-        console.log('令牌验证失败:', error);
-        localStorage.removeItem('authToken');
-        return false;
-    }
-},
+
             // 检查是否可以保存记录（游客）
             canGuestSaveRecord: function() {
                 const localRecords = StorageManager.getLocalRecords();
@@ -1797,141 +1579,13 @@ checkToken: function() {
                         selectElement.appendChild(option);
                     }
                 } catch (error) {
-                    console.error('获取邀请码失败:', error);
+                    if (IS_DEVELOPMENT) {
+                        console.error('获取邀请码失败:', error);
+                    }
                 }
-            },
-
-            // 文件导入邀请码
-            importViaFileInput: function() {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.dat,.txt,.json,.csv,text/plain,application/json,text/csv';
-                
-                fileInput.onchange = async function(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = async function(event) {
-                        try {
-                            const content = event.target.result;
-                            let codes = [];
-                            
-                            // 尝试解析不同格式
-                            if (content.trim().startsWith('{')) {
-                                const data = JSON.parse(content);
-                                if (data.codes && Array.isArray(data.codes)) {
-                                    codes = data.codes;
-                                }
-                            } else {
-                                // 按行分割
-                                codes = content.split('\n')
-                                    .filter(line => line.trim() !== '')
-                                    .map(line => line.trim());
-                            }
-                            
-                            if (codes.length > 0) {
-                                APIService.showGlobalLoading('正在导入邀请码...');
-                                const result = await APIService.importInvitationCodes(codes, '文件导入');
-                                APIService.hideGlobalLoading();
-                                
-                                if (result.success) {
-                                    alert(`成功导入 ${result.inserted.length} 个邀请码`);
-                                    UserSystem.refreshInvitationCodeList();
-                                } else {
-                                    alert('导入失败: ' + (result.error || '未知错误'));
-                                }
-                            } else {
-                                alert('未找到有效的邀请码');
-                            }
-                        } catch (error) {
-                            alert('文件解析失败: ' + error.message);
-                        }
-                    };
-                    
-                    reader.readAsText(file);
-                };
-                
-                fileInput.click();
-            },
-
-            // 手动输入邀请码
-            importManually: function() {
-                const input = prompt('请输入邀请码（多个邀请码用逗号分隔）：');
-                if (!input || input.trim() === '') return;
-                
-                const codes = input.split(',')
-                    .map(code => code.trim())
-                    .filter(code => code !== '');
-                
-                if (codes.length === 0) {
-                    alert('未输入有效的邀请码');
-                    return;
-                }
-                
-                // 调用API导入
-                APIService.importInvitationCodes(codes, '手动输入')
-                    .then(result => {
-                        if (result.success) {
-                            alert(`成功导入 ${result.inserted.length} 个邀请码`);
-                            UserSystem.refreshInvitationCodeList();
-                        } else {
-                            alert('导入失败: ' + (result.error || '未知错误'));
-                        }
-                    })
-                    .catch(error => {
-                        alert('导入失败: ' + error.message);
-                    });
             }
         };
-// ============== 测试数据创建 ============== //
-async function createTestData() {
-    console.log('=== 创建测试数据 ===');
-    
-    // 创建测试用户
-    const testUser = {
-        id: 999,
-        username: 'testuser',
-        userType: 'registered',
-        trialCount: 0
-    };
-    
-    // 创建测试令牌（模拟JWT格式）
-    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjk5OSwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImlhdCI6MTczNjg1NTg1MCwiZXhwIjoxNzM3NDYwNjUwfQ.test-signature-for-demo';
-    
-    // 保存到本地存储
-    localStorage.setItem('currentUser', JSON.stringify(testUser));
-    localStorage.setItem('authToken', testToken);
-    
-    console.log('测试用户已创建:', testUser);
-    console.log('测试令牌已保存');
-    
-    // 创建本地测试记录
-    const testRecord = {
-        id: 'local_test_' + Date.now(),
-        match_name: '测试比赛 - 曼城 vs 利物浦',
-        handicap_type: 'asian',
-        initial_handicap: 0.75,
-        current_handicap: 1.00,
-        initial_water: 0.85,
-        current_water: 0.92,
-        handicap_change: 0.25,
-        water_change: 0.07,
-        historical_record: 'win',
-        recommendation: '上盘',
-        actual_result: 'win',
-        created_at: new Date().toISOString()
-    };
-    
-    StorageManager.saveRecordLocal(testRecord);
-    console.log('测试记录已创建:', testRecord);
-    
-    // 更新UI并重新加载历史记录
-    UserSystem.updateUI(testUser);
-    await loadHistory();
-    
-    alert('测试数据创建成功！\n用户名: testuser\n密码: 无需密码\n\n现在应该能看到历史记录了。');
-}
+
         // ============== 盘口类型切换功能 ============== //
         function initHandicapTabs() {
             const tabs = document.querySelectorAll('.handicap-tab');
@@ -1952,6 +1606,7 @@ async function createTestData() {
             });
         }
 
+        // ============== 初始化盘口选项 ============== //
         function initHandicapOptions() {
             // 初始化让球盘盘口选项（0-3，递增0.25）
             const asianInitialHandicapSelect = document.getElementById('asian-initial-handicap');
@@ -2001,6 +1656,7 @@ async function createTestData() {
             });
         }
 
+        // ============== 初始化水位选项 ============== //
         function initWaterOptions() {
             // 初始化水位选项（0.7-1.2，递增0.01）
             const asianInitialWaterSelect = document.getElementById('asian-initial-water');
@@ -2042,116 +1698,7 @@ async function createTestData() {
             });
         }
 
-        // ============== 事件监听器初始化 ============== //
-        function initEventListeners() {
-            console.log('初始化事件监听器...');
-
-            // 绑定表单按钮事件
-            document.getElementById('save-asian-btn').addEventListener('click', saveAsianRecord);
-            document.getElementById('reset-asian-btn').addEventListener('click', resetAsianForm);
-            document.getElementById('save-size-btn').addEventListener('click', saveSizeRecord);
-            document.getElementById('reset-size-btn').addEventListener('click', resetSizeForm);
-            document.getElementById('toggle-history').addEventListener('click', toggleHistory);
-            document.getElementById('clear-history').addEventListener('click', clearHistory);
-            document.getElementById('sync-history').addEventListener('click', syncHistory);
-
-            // 绑定模态框事件
-            document.getElementById('loginBtn').addEventListener('click', () => UserSystem.login());
-            document.getElementById('cancelLoginBtn').addEventListener('click', () => UserSystem.hideAllModals());
-            document.getElementById('registerBtn').addEventListener('click', () => UserSystem.register());
-            document.getElementById('cancelRegisterBtn').addEventListener('click', () => UserSystem.hideAllModals());
-            document.getElementById('showRegisterLink').addEventListener('click', () => {
-                UserSystem.hideAllModals();
-                UserSystem.showRegisterModal();
-            });
-            document.getElementById('showLoginLink').addEventListener('click', () => {
-                UserSystem.hideAllModals();
-                UserSystem.showLoginModal();
-            });
-
-            // 绑定邀请码功能按钮
-            document.getElementById('fileImportBtn').addEventListener('click', () => UserSystem.importViaFileInput());
-            document.getElementById('manualImportBtn').addEventListener('click', () => UserSystem.importManually());
-            document.getElementById('refreshInviteListBtn').addEventListener('click', () => UserSystem.refreshInvitationCodeList());
-
-            // 为让球盘所有输入框添加change事件，用于自动计算推荐结果
-            document.getElementById('asian-initial-handicap').addEventListener('change', autoCalculateAsianRecommendation);
-            document.getElementById('asian-current-handicap').addEventListener('change', autoCalculateAsianRecommendation);
-            document.getElementById('asian-initial-water').addEventListener('change', autoCalculateAsianRecommendation);
-            document.getElementById('asian-current-water').addEventListener('change', autoCalculateAsianRecommendation);
-            document.getElementById('asian-historical-record').addEventListener('change', autoCalculateAsianRecommendation);
-
-            // 为大小盘所有输入框添加change事件，用于自动计算推荐结果
-            document.getElementById('size-initial-handicap').addEventListener('change', autoCalculateSizeRecommendation);
-            document.getElementById('size-current-handicap').addEventListener('change', autoCalculateSizeRecommendation);
-            document.getElementById('size-initial-water').addEventListener('change', autoCalculateSizeRecommendation);
-            document.getElementById('size-current-water').addEventListener('change', autoCalculateSizeRecommendation);
-            document.getElementById('size-historical-record').addEventListener('change', autoCalculateSizeRecommendation);
-
-            // 网络状态监听
-            window.addEventListener('online', () => {
-                APIService.showNetworkStatus(true, '网络已恢复');
-            });
-            
-            window.addEventListener('offline', () => {
-                APIService.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
-            });
-
-            console.log('事件监听器初始化完成');
-        }
-
-        // ============== 主初始化函数 ============== //
-        async function initializeApplication() {
-            console.log('=== 开始应用程序初始化 ===');
-            // 检查令牌状态
-    if (UserSystem.checkToken()) {
-        console.log('检测到有效令牌');
-    } else {
-        console.log('未检测到有效令牌');
-    }
-            // 第一步：测试服务器连接
-            try {
-                console.log('测试服务器连接...');
-                const testResult = await APIService.testConnection();
-                
-                if (testResult.success) {
-                    console.log('服务器连接成功:', testResult.message);
-                    document.getElementById('apiStatus').textContent = 'API状态: 正常连接';
-                    document.getElementById('apiStatus').style.color = '#28a745';
-                } else {
-                    console.warn('服务器连接警告:', testResult.error);
-                    document.getElementById('apiStatus').textContent = 'API状态: 连接异常';
-                    document.getElementById('apiStatus').style.color = '#dc3545';
-                }
-            } catch (error) {
-                console.error('服务器连接失败:', error);
-                document.getElementById('apiStatus').textContent = 'API状态: 无法连接';
-                document.getElementById('apiStatus').style.color = '#dc3545';
-            }
-
-            // 第二步：初始化用户系统
-            UserSystem.init();
-
-            // 第三步：初始化盘口类型切换
-            initHandicapTabs();
-
-            // 第四步：初始化盘口和水位选项
-            initHandicapOptions();
-            initWaterOptions();
-
-            // 第五步：加载历史记录
-            await loadHistory();
-
-            // 第六步：初始化图表
-            initChart();
-
-            // 第七步：初始化事件监听器
-            initEventListeners();
-
-            console.log('=== 应用程序初始化完成 ===');
-        }
-
-        // ============== 推荐计算函数 ============== //
+        // ============== 自动计算推荐结果 ============== //
         async function autoCalculateAsianRecommendation() {
             const initialHandicap = parseFloat(document.getElementById('asian-initial-handicap').value);
             const currentHandicap = parseFloat(document.getElementById('asian-current-handicap').value);
@@ -2164,11 +1711,6 @@ async function createTestData() {
             if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
                 !isNaN(initialWater) && !isNaN(currentWater) &&
                 historicalRecord && matchName) {
-                
-                // 显示加载状态
-                document.getElementById('asian-loading').style.display = 'block';
-                document.getElementById('asian-recommendation-result').textContent = "计算中...";
-                document.getElementById('asian-recommendation-result').className = "recommendation-result recommendation-neutral";
                 
                 try {
                     // 准备请求数据
@@ -2184,9 +1726,6 @@ async function createTestData() {
 
                     // 调用服务器API获取推荐
                     const result = await APIService.getAsianRecommendation(requestData);
-                    
-                    // 隐藏加载状态
-                    document.getElementById('asian-loading').style.display = 'none';
                     
                     // 更新界面
                     if (result.success) {
@@ -2204,21 +1743,14 @@ async function createTestData() {
 
                         // 显示详细信息
                         document.getElementById('asian-recommendation-details').textContent = result.details || '';
-                    } else {
-                        throw new Error(result.error || '服务器返回错误');
                     }
                     
                 } catch (error) {
-                    // 隐藏加载状态
-                    document.getElementById('asian-loading').style.display = 'none';
-                    
                     // 显示错误
                     const resultElement = document.getElementById('asian-recommendation-result');
                     resultElement.textContent = "计算失败";
                     resultElement.className = "recommendation-result recommendation-neutral";
                     document.getElementById('asian-recommendation-details').textContent = "请检查网络连接后重试";
-                    
-                    console.error('推荐计算失败:', error);
                 }
             } else {
                 // 否则显示等待输入
@@ -2226,7 +1758,6 @@ async function createTestData() {
                 resultElement.textContent = "等待输入";
                 resultElement.className = "recommendation-result recommendation-neutral";
                 document.getElementById('asian-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
-                document.getElementById('asian-loading').style.display = 'none';
             }
         }
 
@@ -2243,11 +1774,6 @@ async function createTestData() {
                 !isNaN(initialWater) && !isNaN(currentWater) &&
                 historicalRecord && matchName) {
                 
-                // 显示加载状态
-                document.getElementById('size-loading').style.display = 'block';
-                document.getElementById('size-recommendation-result').textContent = "计算中...";
-                document.getElementById('size-recommendation-result').className = "recommendation-result size-recommendation-neutral";
-                
                 try {
                     // 准备请求数据
                     const requestData = {
@@ -2262,9 +1788,6 @@ async function createTestData() {
 
                     // 调用服务器API获取推荐
                     const result = await APIService.getSizeRecommendation(requestData);
-                    
-                    // 隐藏加载状态
-                    document.getElementById('size-loading').style.display = 'none';
                     
                     // 更新界面
                     if (result.success) {
@@ -2282,21 +1805,14 @@ async function createTestData() {
 
                         // 显示详细信息
                         document.getElementById('size-recommendation-details').textContent = result.details || '';
-                    } else {
-                        throw new Error(result.error || '服务器返回错误');
                     }
                     
                 } catch (error) {
-                    // 隐藏加载状态
-                    document.getElementById('size-loading').style.display = 'none';
-                    
                     // 显示错误
                     const resultElement = document.getElementById('size-recommendation-result');
                     resultElement.textContent = "计算失败";
                     resultElement.className = "recommendation-result size-recommendation-neutral";
                     document.getElementById('size-recommendation-details').textContent = "请检查网络连接后重试";
-                    
-                    console.error('推荐计算失败:', error);
                 }
             } else {
                 // 否则显示等待输入
@@ -2304,7 +1820,6 @@ async function createTestData() {
                 resultElement.textContent = "等待输入";
                 resultElement.className = "recommendation-result size-recommendation-neutral";
                 document.getElementById('size-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
-                document.getElementById('size-loading').style.display = 'none';
             }
         }
 
@@ -2331,7 +1846,6 @@ async function createTestData() {
                 isNaN(initialWater) || isNaN(currentWater) || 
                 !historicalRecord || 
                 recommendationResult === "等待输入" || 
-                recommendationResult === "计算中..." || 
                 recommendationResult === "计算失败") {
                 alert('请先填写所有字段并获取推荐结果！');
                 return;
@@ -2450,7 +1964,6 @@ async function createTestData() {
                 isNaN(initialWater) || isNaN(currentWater) || 
                 !historicalRecord || 
                 recommendationResult === "等待输入" || 
-                recommendationResult === "计算中..." || 
                 recommendationResult === "计算失败") {
                 alert('请先填写所有字段并获取推荐结果！');
                 return;
@@ -2548,172 +2061,135 @@ async function createTestData() {
         }
 
         // ============== 历史记录管理 ============== //
-async function loadHistory() {
-    console.log('=== 开始加载历史记录 ===');
-    
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    console.log('👤 当前用户:', currentUser);
-    
-    const token = localStorage.getItem('authToken');
-    console.log('🔑 令牌存在:', !!token);
-    
-    const tableBody = document.getElementById('history-table-body');
-    
-    // 清空现有内容
-    tableBody.innerHTML = '';
-    
-    // 显示加载状态
-    const loadingRow = document.createElement('tr');
-    loadingRow.innerHTML = `
-        <td colspan="8" style="text-align: center; padding: 30px;">
-            <div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>
-            <div style="margin-top: 10px; color: #666;">正在加载历史记录...</div>
-        </td>
-    `;
-    tableBody.appendChild(loadingRow);
-    
-    try {
-        let serverRecords = [];
-        let localRecords = [];
-        
-        // 检查是否可以调用服务器API
-        if (currentUser && token) {
-            console.log('🌐 尝试从服务器API加载历史记录...');
-            try {
-                const result = await APIService.getHistory();
-                console.log('📦 服务器响应:', result);
-                
-                if (result.success && result.records) {
-                    serverRecords = result.records;
-                    console.log(`✅ 从服务器成功加载了 ${serverRecords.length} 条记录`);
-                    
-                    // 验证记录结构
-                    if (serverRecords.length > 0) {
-                        const sample = serverRecords[0];
-                        console.log('📝 记录结构验证:', {
-                            hasId: !!sample.id,
-                            hasMatchName: !!sample.match_name,
-                            hasHandicapType: !!sample.handicap_type,
-                            hasCreatedAt: !!sample.created_at,
-                            fullSample: sample
-                        });
-                    }
-                } else {
-                    console.log('❌ 服务器返回错误:', result.error);
-                }
-            } catch (error) {
-                console.log('⚠️ 从服务器加载记录失败:', error.message);
-            }
-        } else {
-            console.log('👥 用户未登录或令牌无效，仅加载本地记录');
-        }
-        
-        // 加载本地记录
-        localRecords = StorageManager.getLocalRecords();
-        console.log(`💾 本地记录数量: ${localRecords.length}`);
-        
-        // 移除加载状态
-        tableBody.innerHTML = '';
-        
-        // 合并记录（服务器记录优先）
-        const allRecords = [...serverRecords, ...localRecords];
-        console.log(`📊 总记录数量: ${allRecords.length}`);
-        
-        if (allRecords.length === 0) {
-            console.log('📭 没有任何记录，显示空状态');
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
-            tableBody.appendChild(emptyRow);
-            updateChartData(allRecords);
-            return;
-        }
-        
-        // 按创建时间倒序排列
-        allRecords.sort((a, b) => {
-            const dateA = new Date(a.created_at || 0);
-            const dateB = new Date(b.created_at || 0);
-            return dateB - dateA;
-        });
-        
-        console.log('🎨 开始渲染记录到表格...');
-        
-        // 渲染记录
-        allRecords.forEach((record, index) => {
-            console.log(`🖼️ 渲染第 ${index + 1} 条记录:`, {
-                id: record.id,
-                match_name: record.match_name,
-                handicap_type: record.handicap_type
-            });
+        async function loadHistory() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const tableBody = document.getElementById('history-table-body');
             
-            const row = document.createElement('tr');
-            
-            // 处理数据，确保有默认值
-            const matchName = record.match_name || '未命名赛事';
-            const handicapType = record.handicap_type || 'asian';
-            const handicapChange = parseFloat(record.handicap_change) || 0;
-            const waterChange = parseFloat(record.water_change) || 0;
-            const historicalRecord = record.historical_record || 'loss';
-            const recommendation = record.recommendation || '无推荐';
-            const actualResult = record.actual_result || '';
-            const isLocal = record.id && record.id.toString().startsWith('local_');
-            
-            // 确定变化状态样式
-            const handicapChangeClass = handicapChange > 0 ? 'status-up' :
-                handicapChange < 0 ? 'status-down' : '';
-            const waterChangeClass = waterChange > 0 ? 'status-up' :
-                waterChange < 0 ? 'status-down' : '';
-            
-            // 盘口类型显示
-            const handicapTypeText = handicapType === 'asian' ? '让球盘' : '大小盘';
-            const handicapTypeClass = handicapType === 'asian' ? 'status-up' : 'status-down';
-            
-            // 存储标识
-            const storageBadge = isLocal ? 
-                '<span class="local-storage-badge">[本地]</span>' : 
-                '<span class="cloud-storage-badge">[云端]</span>';
-            
-            // 创建HTML
-            row.innerHTML = `
-                <td>${matchName} ${storageBadge}</td>
-                <td class="${handicapTypeClass}">${handicapTypeText}</td>
-                <td class="${handicapChangeClass}">${handicapChange > 0 ? '↑ ' : handicapChange < 0 ? '↓ ' : ''}${Math.abs(handicapChange).toFixed(2)}</td>
-                <td class="${waterChangeClass}">${waterChange > 0 ? '↑ ' : waterChange < 0 ? '↓ ' : ''}${Math.abs(waterChange).toFixed(2)}</td>
-                <td>${historicalRecord === 'win' ? '赢' : '输'}</td>
-                <td>${recommendation}</td>
-                <td>
-                    <select class="actual-result-select" data-id="${record.id}" data-is-local="${isLocal}" style="width: 70px; padding: 6px; font-size: 12px;">
-                        <option value="">选择</option>
-                        <option value="win" ${actualResult === 'win' ? 'selected' : ''}>赢</option>
-                        <option value="loss" ${actualResult === 'loss' ? 'selected' : ''}>输</option>
-                    </select>
-                </td>
-                <td style="white-space: nowrap;">
-                    <button class="record-action record-edit" data-id="${record.id}" data-is-local="${isLocal}">编辑</button>
-                    <button class="record-action record-delete" data-id="${record.id}" data-is-local="${isLocal}">删除</button>
-                </td>
+            // 显示加载状态
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 30px;">
+                        <div class="spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>
+                        <div style="margin-top: 10px; color: #666;">正在加载历史记录...</div>
+                    </td>
+                </tr>
             `;
             
-            tableBody.appendChild(row);
-        });
-        
-        console.log('✅ 记录渲染完成');
-        
-        // 添加事件监听器
-        addHistoryEventListeners();
-        
-        // 更新图表数据
-        updateChartData(allRecords);
-        
-        console.log('=== 历史记录加载完成 ===');
-        
-    } catch (error) {
-        console.error('❌ 加载历史记录失败:', error);
-        tableBody.innerHTML = '';
-        const errorRow = document.createElement('tr');
-        errorRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">加载失败: ${error.message}</td>`;
-        tableBody.appendChild(errorRow);
-    }
-}
+            try {
+                let serverRecords = [];
+                let localRecords = [];
+                
+                // 如果已登录且有认证令牌，尝试从服务器加载记录
+                const token = localStorage.getItem('authToken');
+                if (currentUser && token) {
+                    try {
+                        const result = await APIService.getHistory();
+                        if (result.success && result.records) {
+                            serverRecords = result.records;
+                            if (IS_DEVELOPMENT) {
+                                console.log('从服务器加载了', serverRecords.length, '条记录');
+                            }
+                        }
+                    } catch (error) {
+                        if (IS_DEVELOPMENT) {
+                            console.log('从服务器加载记录失败:', error.message);
+                        }
+                    }
+                }
+                
+                // 加载本地记录
+                localRecords = StorageManager.getLocalRecords();
+                
+                // 合并记录（服务器记录优先）
+                const allRecords = [...serverRecords, ...localRecords];
+                
+                // 清空表格
+                tableBody.innerHTML = '';
+                
+                if (allRecords.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">暂无历史记录</td>`;
+                    tableBody.appendChild(emptyRow);
+                    updateChartData(allRecords);
+                    return;
+                }
+                
+                // 按创建时间倒序排列
+                allRecords.sort((a, b) => {
+                    const dateA = new Date(a.created_at || 0);
+                    const dateB = new Date(b.created_at || 0);
+                    return dateB - dateA;
+                });
+                
+                // 渲染记录
+                allRecords.forEach(record => {
+                    const row = document.createElement('tr');
+                    
+                    // 处理数据
+                    const matchName = record.match_name || '未命名赛事';
+                    const handicapType = record.handicap_type || 'asian';
+                    const handicapChange = parseFloat(record.handicap_change) || 0;
+                    const waterChange = parseFloat(record.water_change) || 0;
+                    const historicalRecord = record.historical_record || 'loss';
+                    const recommendation = record.recommendation || '无推荐';
+                    const actualResult = record.actual_result || '';
+                    const isLocal = record.id && record.id.toString().startsWith('local_');
+                    
+                    // 确定变化状态样式
+                    const handicapChangeClass = handicapChange > 0 ? 'status-up' :
+                        handicapChange < 0 ? 'status-down' : '';
+                    const waterChangeClass = waterChange > 0 ? 'status-up' :
+                        waterChange < 0 ? 'status-down' : '';
+                    
+                    // 盘口类型显示
+                    const handicapTypeText = handicapType === 'asian' ? '让球盘' : '大小盘';
+                    const handicapTypeClass = handicapType === 'asian' ? 'status-up' : 'status-down';
+                    
+                    // 存储标识
+                    const storageBadge = isLocal ? 
+                        '<span class="local-storage-badge">[本地]</span>' : 
+                        '<span class="cloud-storage-badge">[云端]</span>';
+                    
+                    row.innerHTML = `
+                        <td>${matchName} ${storageBadge}</td>
+                        <td class="${handicapTypeClass}">${handicapTypeText}</td>
+                        <td class="${handicapChangeClass}">${handicapChange > 0 ? '↑ ' : handicapChange < 0 ? '↓ ' : ''}${Math.abs(handicapChange).toFixed(2)}</td>
+                        <td class="${waterChangeClass}">${waterChange > 0 ? '↑ ' : waterChange < 0 ? '↓ ' : ''}${Math.abs(waterChange).toFixed(2)}</td>
+                        <td>${historicalRecord === 'win' ? '赢' : '输'}</td>
+                        <td>${recommendation}</td>
+                        <td>
+                            <select class="actual-result-select" data-id="${record.id}" data-is-local="${isLocal}" style="width: 70px; padding: 6px; font-size: 12px;">
+                                <option value="">选择</option>
+                                <option value="win" ${actualResult === 'win' ? 'selected' : ''}>赢</option>
+                                <option value="loss" ${actualResult === 'loss' ? 'selected' : ''}>输</option>
+                            </select>
+                        </td>
+                        <td style="white-space: nowrap;">
+                            <button class="record-action record-edit" data-id="${record.id}" data-is-local="${isLocal}">编辑</button>
+                            <button class="record-action record-delete" data-id="${record.id}" data-is-local="${isLocal}">删除</button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // 添加事件监听器
+                addHistoryEventListeners();
+                
+                // 更新图表数据
+                updateChartData(allRecords);
+                
+            } catch (error) {
+                if (IS_DEVELOPMENT) {
+                    console.error('加载历史记录失败:', error);
+                }
+                tableBody.innerHTML = '';
+                const errorRow = document.createElement('tr');
+                errorRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">加载失败: ${error.message}</td>`;
+                tableBody.appendChild(errorRow);
+            }
+        }
+
         function addHistoryEventListeners() {
             // 实际结果选择
             document.querySelectorAll('.actual-result-select').forEach(select => {
@@ -2767,7 +2243,6 @@ async function loadHistory() {
 
         function editRecord(id, isLocal) {
             alert('编辑功能正在开发中...');
-            // 这里可以实现编辑功能
         }
 
         async function deleteRecord(id, isLocal) {
@@ -3037,7 +2512,6 @@ async function loadHistory() {
             document.getElementById('asian-recommendation-result').textContent = '等待输入';
             document.getElementById('asian-recommendation-result').className = 'recommendation-result recommendation-neutral';
             document.getElementById('asian-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
-            document.getElementById('asian-loading').style.display = 'none';
         }
 
         function resetSizeForm() {
@@ -3050,7 +2524,6 @@ async function loadHistory() {
             document.getElementById('size-recommendation-result').textContent = '等待输入';
             document.getElementById('size-recommendation-result').className = 'recommendation-result size-recommendation-neutral';
             document.getElementById('size-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
-            document.getElementById('size-loading').style.display = 'none';
         }
 
         function toggleHistory() {
@@ -3069,23 +2542,110 @@ async function loadHistory() {
         function clearHistory() {
             if (confirm('确定要清空所有历史记录吗？此操作不可撤销！')) {
                 StorageManager.clearLocalRecords();
-                
-                // 这里也可以添加清空服务器记录的代码
-                // 但通常需要用户确认，因为这是危险操作
-                
                 loadHistory();
                 alert('历史记录已清空！');
             }
         }
 
+        // ============== 事件监听器初始化 ============== //
+        function initEventListeners() {
+            // 绑定表单按钮事件
+            document.getElementById('save-asian-btn').addEventListener('click', saveAsianRecord);
+            document.getElementById('reset-asian-btn').addEventListener('click', resetAsianForm);
+            document.getElementById('save-size-btn').addEventListener('click', saveSizeRecord);
+            document.getElementById('reset-size-btn').addEventListener('click', resetSizeForm);
+            document.getElementById('toggle-history').addEventListener('click', toggleHistory);
+            document.getElementById('clear-history').addEventListener('click', clearHistory);
+            document.getElementById('sync-history').addEventListener('click', syncHistory);
+
+            // 绑定模态框事件
+            document.getElementById('loginBtn').addEventListener('click', () => UserSystem.login());
+            document.getElementById('cancelLoginBtn').addEventListener('click', () => UserSystem.hideAllModals());
+            document.getElementById('registerBtn').addEventListener('click', () => UserSystem.register());
+            document.getElementById('cancelRegisterBtn').addEventListener('click', () => UserSystem.hideAllModals());
+            document.getElementById('showRegisterLink').addEventListener('click', () => {
+                UserSystem.hideAllModals();
+                UserSystem.showRegisterModal();
+            });
+            document.getElementById('showLoginLink').addEventListener('click', () => {
+                UserSystem.hideAllModals();
+                UserSystem.showLoginModal();
+            });
+
+            // 为让球盘所有输入框添加change事件
+            document.getElementById('asian-initial-handicap').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-current-handicap').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-initial-water').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-current-water').addEventListener('change', autoCalculateAsianRecommendation);
+            document.getElementById('asian-historical-record').addEventListener('change', autoCalculateAsianRecommendation);
+
+            // 为大小盘所有输入框添加change事件
+            document.getElementById('size-initial-handicap').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-current-handicap').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-initial-water').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-current-water').addEventListener('change', autoCalculateSizeRecommendation);
+            document.getElementById('size-historical-record').addEventListener('change', autoCalculateSizeRecommendation);
+
+            // 网络状态监听
+            window.addEventListener('online', () => {
+                APIService.showNetworkStatus(true, '网络已恢复');
+            });
+            
+            window.addEventListener('offline', () => {
+                APIService.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
+            });
+        }
+
+        // ============== 主初始化函数 ============== //
+        async function initializeApplication() {
+            if (IS_DEVELOPMENT) {
+                console.log('=== 开始应用程序初始化 ===');
+            }
+
+            // 第一步：测试服务器连接
+            try {
+                const testResult = await APIService.testConnection();
+                
+                if (testResult.success) {
+                    document.getElementById('apiStatus').textContent = 'API状态: 正常连接';
+                    document.getElementById('apiStatus').style.color = '#28a745';
+                } else {
+                    document.getElementById('apiStatus').textContent = 'API状态: 连接异常';
+                    document.getElementById('apiStatus').style.color = '#dc3545';
+                }
+            } catch (error) {
+                document.getElementById('apiStatus').textContent = 'API状态: 无法连接';
+                document.getElementById('apiStatus').style.color = '#dc3545';
+            }
+
+            // 第二步：初始化用户系统
+            UserSystem.init();
+
+            // 第三步：初始化盘口类型切换
+            initHandicapTabs();
+
+            // 第四步：初始化盘口和水位选项
+            initHandicapOptions();
+            initWaterOptions();
+
+            // 第五步：加载历史记录
+            await loadHistory();
+
+            // 第六步：初始化图表
+            initChart();
+
+            // 第七步：初始化事件监听器
+            initEventListeners();
+
+            if (IS_DEVELOPMENT) {
+                console.log('=== 应用程序初始化完成 ===');
+            }
+        }
+
         // ============== 页面加载入口 ============== //
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM内容加载完成，开始初始化应用程序...');
             initializeApplication();
         });
     </script>
 </body>
 </html>
-
-
-
