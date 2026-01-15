@@ -1577,153 +1577,34 @@
 
             // 刷新邀请码列表
             refreshInvitationCodeList: async function() {
-        try {
-            const result = await APIService.getInvitationCodes();
-            const selectElement = document.getElementById('invitationCode');
-            
-            // 清空现有选项
-            while (selectElement.options.length > 1) {
-                selectElement.remove(1);
-            }
-            
-            if (result.success && result.codes && result.codes.length > 0) {
-                result.codes.forEach(code => {
-                    const option = document.createElement('option');
-                    option.value = code.code;
-                    option.textContent = `${code.code} (${code.created_by})`;
-                    selectElement.appendChild(option);
-                });
-            } else {
-                const option = document.createElement('option');
-                option.value = "";
-                option.textContent = "暂无可用邀请码";
-                selectElement.appendChild(option);
-            }
-        } catch (error) {
-            if (IS_DEVELOPMENT) {
-                console.error('获取邀请码失败:', error);
-            }
-        }
-        
-        // 同时检查本地存储中的邀请码文件
-        this.loadLocalInvitationCodes();
-    },
-    // 加载本地存储的邀请码
-    loadLocalInvitationCodes: function() {
-        try {
-            const invitationFileData = localStorage.getItem('invitation_codes_file');
-            if (invitationFileData) {
-                const codes = JSON.parse(invitationFileData);
-                const selectElement = document.getElementById('invitationCode');
-                
-                // 添加本地邀请码选项
-                codes.forEach(code => {
-                    const option = document.createElement('option');
-                    option.value = code.code;
-                    option.textContent = `${code.code} (本地文件导入)`;
-                    selectElement.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('加载本地邀请码失败:', error);
-        }
-    },
-    
-    // 处理文件导入
-    handleFileImport: function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        // 检查文件类型
-        if (!file.name.endsWith('.dat') && !file.name.endsWith('.txt')) {
-            alert('请选择 .dat 或 .txt 格式的邀请码文件');
-            return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            try {
-                const content = e.target.result;
-                let codes = [];
-                
-                // 尝试解析文件内容
                 try {
-                    // 假设是JSON格式
-                    const data = JSON.parse(content);
-                    if (Array.isArray(data)) {
-                        codes = data;
-                    } else if (data.codes && Array.isArray(data.codes)) {
-                        codes = data.codes;
-                    } else {
-                        // 尝试按行解析文本文件
-                        const lines = content.split('\n');
-                        codes = lines
-                            .map(line => line.trim())
-                            .filter(line => line.length > 0)
-                            .map(line => ({ code: line }));
+                    const result = await APIService.getInvitationCodes();
+                    const selectElement = document.getElementById('invitationCode');
+                    
+                    // 清空现有选项
+                    while (selectElement.options.length > 1) {
+                        selectElement.remove(1);
                     }
-                } catch (jsonError) {
-                    // 如果JSON解析失败，尝试按行解析
-                    const lines = content.split('\n');
-                    codes = lines
-                        .map(line => line.trim())
-                        .filter(line => line.length > 0)
-                        .map(line => ({ code: line }));
+                    
+                    if (result.success && result.codes && result.codes.length > 0) {
+                        result.codes.forEach(code => {
+                            const option = document.createElement('option');
+                            option.value = code.code;
+                            option.textContent = `${code.code} (${code.created_by})`;
+                            selectElement.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "暂无可用邀请码";
+                        selectElement.appendChild(option);
+                    }
+                } catch (error) {
+                    if (IS_DEVELOPMENT) {
+                        console.error('获取邀请码失败:', error);
+                    }
                 }
-                
-                if (codes.length === 0) {
-                    alert('文件中没有找到有效的邀请码');
-                    return;
-                }
-                
-                // 保存到本地存储
-                localStorage.setItem('invitation_codes_file', JSON.stringify(codes));
-                
-                // 更新下拉列表
-                this.loadLocalInvitationCodes();
-                
-                alert(`成功导入 ${codes.length} 个邀请码！请刷新列表查看。`);
-                
-            } catch (error) {
-                alert('文件解析失败: ' + error.message);
             }
-        };
-        
-        reader.onerror = () => {
-            alert('文件读取失败，请重试');
-        };
-        
-        reader.readAsText(file);
-    },
-    
-    // 手动输入邀请码
-    showManualInvitationInput: function() {
-        const code = prompt('请输入邀请码:');
-        if (!code) return;
-        
-        const selectElement = document.getElementById('invitationCode');
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = `${code} (手动输入)`;
-        selectElement.appendChild(option);
-        
-        alert('邀请码已添加，请从下拉列表中选择');
-    },
-    
-    // 刷新邀请码列表（用于刷新按钮）
-    refreshInviteList: function() {
-        // 清空下拉列表
-        const selectElement = document.getElementById('invitationCode');
-        while (selectElement.options.length > 1) {
-            selectElement.remove(1);
-        }
-        
-        // 重新加载服务器邀请码
-        this.refreshInvitationCodeList();
-        
-        alert('邀请码列表已刷新！');
-    }
         };
 
         // ============== 盘口类型切换功能 ============== //
@@ -2726,36 +2607,6 @@
             document.getElementById('size-current-water').addEventListener('change', autoCalculateSizeRecommendation);
             document.getElementById('size-historical-record').addEventListener('change', autoCalculateSizeRecommendation);
 
-
-            // 绑定文件导入相关事件
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.dat,.txt,.json';
-    fileInput.style.display = 'none';
-    fileInput.id = 'invitationFileInput';
-    document.body.appendChild(fileInput);
-    
-    // 绑定文件导入按钮点击事件
-    document.getElementById('fileImportBtn').addEventListener('click', () => {
-        fileInput.click();
-    });
-    
-    // 绑定文件选择事件
-    fileInput.addEventListener('change', (event) => {
-        UserSystem.handleFileImport(event);
-        // 清空输入以便再次选择同一文件
-        fileInput.value = '';
-    });
-    
-    // 绑定手动输入按钮事件
-    document.getElementById('manualImportBtn').addEventListener('click', () => {
-        UserSystem.showManualInvitationInput();
-    });
-    
-    // 绑定刷新列表按钮事件
-    document.getElementById('refreshInviteListBtn').addEventListener('click', () => {
-        UserSystem.refreshInviteList();
-    });
             // 网络状态监听
             window.addEventListener('online', () => {
                 APIService.showNetworkStatus(true, '网络已恢复');
