@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邀请码申请系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            display: none;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .invitation-code {
+            background: white;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 18px;
+            text-align: center;
+            word-break: break-all;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            margin: 0;
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        .file-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .file-btn {
+            background: #17a2b8;
+        }
+        
+        .history-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .history-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-code {
+            font-family: monospace;
+            font-weight: 600;
+        }
+        
+        .history-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+        }
+        
+        .status-used {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .status-available {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .status-rejected {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .status-completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .modal-message {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #28a745;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .info-message {
+            color: #17a2b8;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .admin-section {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .admin-title {
+            color: #1e3c72;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔑</div>
+        <h1>邀请码申请系统</h1>
+        <p class="subtitle">申请邀请码以注册足球盘口分析软件</p>
+        
+        <!-- 申请表单 -->
+        <div class="form-group">
+            <label for="username">您的用户名</label>
+            <input type="text" id="username" placeholder="请输入您的用户名（2-50个字符）">
+            <div id="usernameError" class="error-message"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">邮箱地址（可选）</label>
+            <input type="email" id="email" placeholder="用于接收邀请码和通知">
+            <div id="emailError" class="error-message"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="purpose">使用目的</label>
+            <select id="purpose">
+                <option value="">请选择使用目的</option>
+                <option value="个人使用">个人使用</option>
+                <option value="数据分析研究">数据分析研究</option>
+                <option value="团队使用">团队使用</option>
+                <option value="其他">其他</option>
+            </select>
+            <div id="purposeError" class="error-message"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">备注说明（可选）</label>
+            <input type="text" id="notes" placeholder="请简要说明您的使用需求">
+        </div>
+        
+        <button class="btn" id="applyBtn">
+            <span id="applyText">提交申请</span>
+            <span id="applyLoading" class="loading" style="display: none;"></span>
+        </button>
+        
+        <div id="applicationResult" class="info-message"></div>
+        
+        <!-- 申请结果显示 -->
+        <div id="resultBox" class="result-box">
+            <div class="result-title">🎉 申请提交成功！</div>
+            <p>您的申请信息：</p>
+            <div class="invitation-code">
+                <div style="font-size: 16px; margin-bottom: 10px;">申请ID: <span id="applicationIdDisplay"></span></div>
+                <div style="font-size: 14px; color: #666;">用户名: <span id="appliedUsername"></span></div>
+                <div style="font-size: 14px; color: #666;">状态: <span id="applicationStatus" class="history-status status-pending">审核中</span></div>
+                <div style="font-size: 12px; color: #888; margin-top: 10px;">提交时间: <span id="applicationTime"></span></div>
+            </div>
+            <p style="font-size: 14px; color: #666; margin: 10px 0;">
+                请等待管理员审核，审核通过后您将收到邀请码。
+            </p>
+            
+            <div class="action-buttons">
+                <button class="btn btn-success" id="checkStatusBtn">检查审核状态</button>
+                <button class="btn btn-secondary" id="newApplyBtn">新的申请</button>
+            </div>
+        </div>
+        
+        <!-- 邀请码验证部分 -->
+        <div class="file-section">
+            <h3>🔍 邀请码验证</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                如果您已有邀请码，可以在这里验证其有效性
+            </p>
+            
+            <div class="form-group">
+                <input type="text" id="validateCode" placeholder="请输入邀请码进行验证">
+                <div id="validateResult" class="info-message"></div>
+            </div>
+            
+            <button class="btn file-btn" id="validateBtn">验证邀请码</button>
+        </div>
+        
+        <!-- 管理员功能部分 -->
+        <div id="adminSection" class="admin-section" style="display: none;">
+            <div class="admin-title">
+                <span>👑 管理员功能</span>
+                <span id="adminStatus" class="history-status status-available">管理员模式</span>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="manageApplicationsBtn">管理申请</button>
+                <button class="btn btn-success" id="generateCodesBtn">生成邀请码</button>
+                <button class="btn" id="viewStatsBtn">查看统计</button>
+            </div>
+            
+            <div id="adminResult" class="info-message" style="margin-top: 10px;"></div>
+        </div>
+        
+        <!-- 链接回主应用 -->
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 14px;">
+                已有邀请码？ 
+                <a href="index.html" style="color: #667eea; text-decoration: none; font-weight: 600;">
+                    返回主应用注册
+                </a>
+            </p>
+        </div>
+    </div>
+    
+    <!-- 提示模态框 -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle"></div>
+            <div class="modal-message" id="modalMessage"></div>
+            <button class="btn" id="modalCloseBtn">确定</button>
+        </div>
+    </div>
+    
+    <script>
+        // ============ API配置 ============
+        const API_CONFIG = {
+            // 根据环境自动选择API地址
+            getBaseUrl: function() {
+                // 开发环境
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return 'http://localhost:3000';
+                }
+                // 生产环境
+                return 'https://footballdream.vercel.app';
+            },
+            
+            endpoints: {
+                apply: '/api/apply-invitation',
+                validate: '/api/validate-code',
+                applications: '/api/invitation-applications',
+                generateCodes: '/api/admin/generate-codes',
+                stats: '/api/invitation-stats',
+                test: '/api/test'
+            }
+        };
+
+        // ============ API服务 ============
+        const APIService = {
+            // 显示/隐藏加载状态
+            showLoading: function(buttonId, text = '处理中...') {
+                const btn = document.getElementById(buttonId);
+                const btnText = btn.querySelector('.btn-text') || btn;
+                const loadingEl = document.getElementById(buttonId + 'Loading') || 
+                                 btn.querySelector('.loading');
+                
+                if (btnText) btnText.textContent = text;
+                if (loadingEl) loadingEl.style.display = 'inline-block';
+                btn.disabled = true;
+            },
+            
+            hideLoading: function(buttonId, originalText = '提交申请') {
+                const btn = document.getElementById(buttonId);
+                const btnText = btn.querySelector('.btn-text') || btn;
+                const loadingEl = document.getElementById(buttonId + 'Loading') || 
+                                 btn.querySelector('.loading');
+                
+                if (btnText) btnText.textContent = originalText;
+                if (loadingEl) loadingEl.style.display = 'none';
+                btn.disabled = false;
+            },
+            
+            // 显示消息
+            showMessage: function(title, message) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalMessage').textContent = message;
+                document.getElementById('messageModal').style.display = 'flex';
+            },
+            
+            // 显示错误
+            showError: function(elementId, message) {
+                const element = document.getElementById(elementId);
+                element.textContent = message;
+                element.style.display = 'block';
+            },
+            
+            // 隐藏错误
+            hideError: function(elementId) {
+                const element = document.getElementById(elementId);
+                element.style.display = 'none';
+            },
+            
+            // 通用请求方法
+            async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
+                const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
+                
+                console.log(`API请求: ${method} ${url}`, data);
+                
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // 添加认证头
+                if (requiresAuth) {
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+                
+                const options = {
+                    method,
+                    headers
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                try {
+                    const response = await fetch(url, options);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`HTTP错误 ${response.status}:`, errorText);
+                        throw new Error(`HTTP错误 ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log(`API响应:`, result);
+                    return result;
+                    
+                } catch (error) {
+                    console.error(`API请求失败 (${endpoint}):`, error);
+                    throw error;
+                }
+            },
+            
+            // 申请邀请码
+            async applyInvitation(username, email, purpose, notes) {
+                return this.request(API_CONFIG.endpoints.apply, 'POST', {
+                    username,
+                    email,
+                    purpose,
+                    notes
+                });
+            },
+            
+            // 验证邀请码
+            async validateInvitationCode(code) {
+                return this.request(API_CONFIG.endpoints.validate, 'POST', { code });
+            },
+            
+            // 获取申请列表（管理员）
+            async getApplications(status = '', page = 1) {
+                let url = `${API_CONFIG.endpoints.applications}?page=${page}`;
+                if (status) {
+                    url += `&status=${status}`;
+                }
+                return this.request(url, 'GET', null, true);
+            },
+            
+            // 生成邀请码（管理员）
+            async generateInvitationCodes(count, createdBy, purpose, format) {
+                return this.request(API_CONFIG.endpoints.generateCodes, 'POST', {
+                    count,
+                    createdBy,
+                    purpose,
+                    format
+                }, true);
+            },
+            
+            // 获取统计信息（管理员）
+            async getInvitationStats() {
+                return this.request(API_CONFIG.endpoints.stats, 'GET', null, true);
+            },
+            
+            // 测试连接
+            async testConnection() {
+                return this.request(API_CONFIG.endpoints.test, 'GET');
+            }
+        };
+
+        // ============ 主业务逻辑 ============
+        // 提交申请
+        async function submitApplication() {
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const purpose = document.getElementById('purpose').value;
+            const notes = document.getElementById('notes').value.trim();
+            
+            // 验证输入
+            let isValid = true;
+            
+            if (!username) {
+                APIService.showError('usernameError', '请输入用户名');
+                isValid = false;
+            } else if (username.length < 2 || username.length > 50) {
+                APIService.showError('usernameError', '用户名长度应在2-50个字符之间');
+                isValid = false;
+            } else {
+                APIService.hideError('usernameError');
+            }
+            
+            if (email && !isValidEmail(email)) {
+                APIService.showError('emailError', '邮箱格式不正确');
+                isValid = false;
+            } else {
+                APIService.hideError('emailError');
+            }
+            
+            if (!purpose) {
+                APIService.showError('purposeError', '请选择使用目的');
+                isValid = false;
+            } else {
+                APIService.hideError('purposeError');
+            }
+            
+            if (!isValid) return;
+            
+            APIService.showLoading('applyBtn', '正在提交...');
+            
+            try {
+                const result = await APIService.applyInvitation(username, email, purpose, notes);
+                
+                if (result.success) {
+                    // 显示申请结果
+                    showApplicationResult(result.data);
+                    
+                    // 显示成功消息
+                    document.getElementById('applicationResult').textContent = 
+                        '申请已提交！请等待管理员审核。';
+                    document.getElementById('applicationResult').className = 'success-message';
+                    document.getElementById('applicationResult').style.display = 'block';
+                    
+                    // 重置表单
+                    resetForm();
+                    
+                } else {
+                    APIService.showMessage('申请失败', result.error || '未知错误');
+                }
+                
+            } catch (error) {
+                console.error('申请失败:', error);
+                
+                if (!navigator.onLine) {
+                    APIService.showMessage('网络错误', '网络连接已断开，请检查网络');
+                } else if (error.message.includes('Failed to fetch')) {
+                    APIService.showMessage('服务器错误', '无法连接到服务器，请稍后重试');
+                } else {
+                    APIService.showMessage('错误', '申请失败：' + error.message);
+                }
+                
+            } finally {
+                APIService.hideLoading('applyBtn', '提交申请');
+            }
+        }
+
+        // 显示申请结果
+        function showApplicationResult(data) {
+            document.getElementById('applicationIdDisplay').textContent = data.applicationId;
+            document.getElementById('appliedUsername').textContent = data.username;
+            document.getElementById('applicationTime').textContent = 
+                new Date(data.submittedAt).toLocaleString('zh-CN');
+            
+            // 根据状态设置样式
+            const statusEl = document.getElementById('applicationStatus');
+            statusEl.textContent = getStatusText(data.status);
+            statusEl.className = 'history-status ' + getStatusClass(data.status);
+            
+            document.getElementById('resultBox').style.display = 'block';
+        }
+
+        // 验证邀请码
+        async function validateInvitationCode() {
+            const code = document.getElementById('validateCode').value.trim();
+            
+            if (!code) {
+                APIService.showMessage('提示', '请输入邀请码');
+                return;
+            }
+            
+            if (!/^[A-Z0-9]{6,12}$/.test(code)) {
+                document.getElementById('validateResult').textContent = 
+                    '邀请码格式不正确，应为6-12位大写字母和数字';
+                document.getElementById('validateResult').className = 'error-message';
+                document.getElementById('validateResult').style.display = 'block';
+                return;
+            }
+            
+            APIService.showLoading('validateBtn', '正在验证...');
+            
+            try {
+                const result = await APIService.validateInvitationCode(code);
+                
+                const resultEl = document.getElementById('validateResult');
+                
+                if (result.success && result.valid) {
+                    resultEl.textContent = `✅ 邀请码有效！创建者：${result.data.created_by}`;
+                    resultEl.className = 'success-message';
+                    
+                    // 显示详细信息
+                    setTimeout(() => {
+                        APIService.showMessage('验证成功', 
+                            `邀请码：${result.data.code}\n` +
+                            `创建者：${result.data.created_by}\n` +
+                            `状态：${result.data.is_active ? '有效' : '无效'}\n` +
+                            `使用次数：${result.data.used_count}/${result.data.max_uses}\n` +
+                            `过期时间：${result.data.expires_at ? new Date(result.data.expires_at).toLocaleDateString('zh-CN') : '无限制'}`
+                        );
+                    }, 500);
+                    
+                } else {
+                    resultEl.textContent = `❌ ${result.error || '邀请码无效'}`;
+                    resultEl.className = 'error-message';
+                }
+                
+                resultEl.style.display = 'block';
+                
+            } catch (error) {
+                console.error('验证失败:', error);
+                const resultEl = document.getElementById('validateResult');
+                resultEl.textContent = '验证失败，请检查网络连接';
+                resultEl.className = 'error-message';
+                resultEl.style.display = 'block';
+                
+            } finally {
+                APIService.hideLoading('validateBtn', '验证邀请码');
+            }
+        }
+
+        // 管理员功能
+        async function generateInvitationCodes() {
+            const count = prompt('请输入要生成的邀请码数量（1-100）：', '10');
+            if (!count || isNaN(count) || count < 1 || count > 100) {
+                APIService.showMessage('输入错误', '请输入1-100之间的数字');
+                return;
+            }
+            
+            const createdBy = prompt('请输入创建者名称：', '管理员');
+            if (!createdBy) return;
+            
+            const purpose = prompt('请输入用途说明：', '批量生成');
+            
+            try {
+                APIService.showLoading('generateCodesBtn', '正在生成...');
+                
+                const result = await APIService.generateInvitationCodes(
+                    parseInt(count), 
+                    createdBy, 
+                    purpose, 
+                    'json'
+                );
+                
+                if (result.success) {
+                    // 显示结果
+                    const codesList = result.codes.map(c => c.code).join('\n');
+                    
+                    APIService.showMessage('生成成功', 
+                        `已生成 ${count} 个邀请码\n\n` +
+                        `前5个邀请码：\n${codesList}\n\n` +
+                        `所有邀请码已保存到数据库。`
+                    );
+                    
+                    // 显示在界面上
+                    document.getElementById('adminResult').textContent = 
+                        `成功生成 ${count} 个邀请码`;
+                    document.getElementById('adminResult').className = 'success-message';
+                    document.getElementById('adminResult').style.display = 'block';
+                    
+                } else {
+                    APIService.showMessage('生成失败', result.error);
+                }
+                
+            } catch (error) {
+                console.error('生成失败:', error);
+                
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    APIService.showMessage('权限不足', '需要管理员权限才能生成邀请码');
+                } else {
+                    APIService.showMessage('生成失败', error.message);
+                }
+                
+            } finally {
+                APIService.hideLoading('generateCodesBtn', '生成邀请码');
+            }
+        }
+
+        // 查看统计信息
+        async function viewInvitationStats() {
+            try {
+                APIService.showLoading('viewStatsBtn', '加载中...');
+                
+                const result = await APIService.getInvitationStats();
+                
+                if (result.success) {
+                    const stats = result.stats;
+                    
+                    APIService.showMessage('统计信息', 
+                        `📊 邀请码统计\n` +
+                        `总数量：${stats.total}\n` +
+                        `可用数量：${stats.available}\n` +
+                        `已使用：${stats.used}\n` +
+                        `已过期：${stats.expired}\n` +
+                        `最近7天生成：${stats.recent}\n\n` +
+                        `📝 申请统计\n` +
+                        `待审核：${stats.applications.pending || 0}\n` +
+                        `已批准：${stats.applications.approved || 0}\n` +
+                        `已拒绝：${stats.applications.rejected || 0}\n` +
+                        `已完成：${stats.applications.completed || 0}`
+                    );
+                    
+                } else {
+                    APIService.showMessage('获取失败', result.error);
+                }
+                
+            } catch (error) {
+                console.error('获取统计失败:', error);
+                
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    APIService.showMessage('权限不足', '需要管理员权限才能查看统计');
+                } else {
+                    APIService.showMessage('获取失败', error.message);
+                }
+                
+            } finally {
+                APIService.hideLoading('viewStatsBtn', '查看统计');
+            }
+        }
+
+        // 管理申请
+        async function manageApplications() {
+            try {
+                APIService.showLoading('manageApplicationsBtn', '加载中...');
+                
+                const result = await APIService.getApplications('pending');
+                
+                if (result.success) {
+                    const pendingCount = result.pagination?.total || result.applications?.length || 0;
+                    
+                    if (pendingCount === 0) {
+                        APIService.showMessage('申请管理', '目前没有待审核的申请');
+                    } else {
+                        APIService.showMessage('申请管理', 
+                            `有 ${pendingCount} 个待审核申请\n\n` +
+                            `请登录管理员后台进行详细管理。\n` +
+                            `后台地址：${API_CONFIG.getBaseUrl()}/admin`
+                        );
+                    }
+                    
+                } else {
+                    APIService.showMessage('获取失败', result.error);
+                }
+                
+            } catch (error) {
+                console.error('管理申请失败:', error);
+                
+                if (error.message.includes('401') || error.message.includes('403')) {
+                    APIService.showMessage('权限不足', '需要管理员权限才能管理申请');
+                } else {
+                    APIService.showMessage('获取失败', error.message);
+                }
+                
+            } finally {
+                APIService.hideLoading('manageApplicationsBtn', '管理申请');
+            }
+        }
+
+        // 检查管理员权限
+        function checkAdminStatus() {
+            const token = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('currentUser');
+            
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user.userType === 'admin') {
+                        document.getElementById('adminSection').style.display = 'block';
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('解析用户数据失败:', error);
+                }
+            }
+            
+            return false;
+        }
+
+        // 检查审核状态
+        async function checkApplicationStatus() {
+            APIService.showMessage('状态检查', 
+                '审核状态检查功能正在开发中...\n\n' +
+                '请稍后刷新页面查看更新。'
+            );
+        }
+
+        // 辅助函数
+        function resetForm() {
+            document.getElementById('username').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('purpose').value = '';
+            document.getElementById('notes').value = '';
+            document.getElementById('validateCode').value = '';
+            
+            APIService.hideError('usernameError');
+            APIService.hideError('emailError');
+            APIService.hideError('purposeError');
+            
+            document.getElementById('applicationResult').style.display = 'none';
+            document.getElementById('validateResult').style.display = 'none';
+            document.getElementById('adminResult').style.display = 'none';
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '审核中',
+                'approved': '已批准',
+                'rejected': '已拒绝',
+                'completed': '已完成'
+            };
+            return statusMap[status] || status;
+        }
+
+        function getStatusClass(status) {
+            const classMap = {
+                'pending': 'status-pending',
+                'approved': 'status-available',
+                'rejected': 'status-rejected',
+                'completed': 'status-completed'
+            };
+            return classMap[status] || 'status-pending';
+        }
+
+        // ============ 初始化 ============
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定按钮事件
+            document.getElementById('applyBtn').addEventListener('click', submitApplication);
+            document.getElementById('validateBtn').addEventListener('click', validateInvitationCode);
+            document.getElementById('newApplyBtn').addEventListener('click', function() {
+                document.getElementById('resultBox').style.display = 'none';
+                resetForm();
+            });
+            document.getElementById('checkStatusBtn').addEventListener('click', checkApplicationStatus);
+            
+            // 管理员功能按钮
+            document.getElementById('generateCodesBtn').addEventListener('click', generateInvitationCodes);
+            document.getElementById('viewStatsBtn').addEventListener('click', viewInvitationStats);
+            document.getElementById('manageApplicationsBtn').addEventListener('click', manageApplications);
+            
+            // 模态框关闭按钮
+            document.getElementById('modalCloseBtn').addEventListener('click', function() {
+                document.getElementById('messageModal').style.display = 'none';
+            });
+            
+            // 输入框实时验证
+            document.getElementById('username').addEventListener('input', function() {
+                if (this.value.trim()) {
+                    APIService.hideError('usernameError');
+                }
+            });
+            
+            document.getElementById('email').addEventListener('input', function() {
+                if (this.value.trim()) {
+                    APIService.hideError('emailError');
+                }
+            });
+            
+            document.getElementById('validateCode').addEventListener('input', function() {
+                document.getElementById('validateResult').style.display = 'none';
+            });
+            
+            // 支持按Enter键提交
+            document.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    const activeElement = document.activeElement;
+                    
+                    if (activeElement.id === 'username' || 
+                        activeElement.id === 'email' || 
+                        activeElement.id === 'purpose' ||
+                        activeElement.id === 'notes') {
+                        event.preventDefault();
+                        submitApplication();
+                    } else if (activeElement.id === 'validateCode') {
+                        event.preventDefault();
+                        validateInvitationCode();
+                    }
+                }
+            });
+            
+            // 检查管理员状态
+            const isAdmin = checkAdminStatus();
+            
+            // 测试服务器连接
+            APIService.testConnection().then(result => {
+                if (result && result.success) {
+                    console.log('服务器连接正常');
+                } else {
+                    console.warn('服务器连接测试失败');
+                }
+            }).catch(error => {
+                console.error('服务器连接测试错误:', error);
+            });
+            
+            // 检查URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const adminParam = urlParams.get('admin');
+            const tokenParam = urlParams.get('token');
+            
+            if (adminParam === 'true' || tokenParam) {
+                console.log('管理员模式或带token访问');
+            }
+        });
+    </script>
+</body>
+</html>
