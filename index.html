@@ -1850,7 +1850,54 @@ checkToken: function() {
                     });
             }
         };
-
+// ============== 测试数据创建 ============== //
+async function createTestData() {
+    console.log('=== 创建测试数据 ===');
+    
+    // 创建测试用户
+    const testUser = {
+        id: 999,
+        username: 'testuser',
+        userType: 'registered',
+        trialCount: 0
+    };
+    
+    // 创建测试令牌（模拟JWT格式）
+    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjk5OSwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsImlhdCI6MTczNjg1NTg1MCwiZXhwIjoxNzM3NDYwNjUwfQ.test-signature-for-demo';
+    
+    // 保存到本地存储
+    localStorage.setItem('currentUser', JSON.stringify(testUser));
+    localStorage.setItem('authToken', testToken);
+    
+    console.log('测试用户已创建:', testUser);
+    console.log('测试令牌已保存');
+    
+    // 创建本地测试记录
+    const testRecord = {
+        id: 'local_test_' + Date.now(),
+        match_name: '测试比赛 - 曼城 vs 利物浦',
+        handicap_type: 'asian',
+        initial_handicap: 0.75,
+        current_handicap: 1.00,
+        initial_water: 0.85,
+        current_water: 0.92,
+        handicap_change: 0.25,
+        water_change: 0.07,
+        historical_record: 'win',
+        recommendation: '上盘',
+        actual_result: 'win',
+        created_at: new Date().toISOString()
+    };
+    
+    StorageManager.saveRecordLocal(testRecord);
+    console.log('测试记录已创建:', testRecord);
+    
+    // 更新UI并重新加载历史记录
+    UserSystem.updateUI(testUser);
+    await loadHistory();
+    
+    alert('测试数据创建成功！\n用户名: testuser\n密码: 无需密码\n\n现在应该能看到历史记录了。');
+}
         // ============== 盘口类型切换功能 ============== //
         function initHandicapTabs() {
             const tabs = document.querySelectorAll('.handicap-tab');
@@ -2924,6 +2971,7 @@ async function loadHistory() {
     </script>
 </body>
 </html>
+
 
 
 
