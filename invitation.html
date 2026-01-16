@@ -595,79 +595,240 @@
 
         // ============ 主业务逻辑 ============
         // 提交申请
-        async function submitApplication() {
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const purpose = document.getElementById('purpose').value;
-            const notes = document.getElementById('notes').value.trim();
+async function submitApplication() {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const purpose = document.getElementById('purpose').value;
+    const notes = document.getElementById('notes').value.trim();
+    
+    // 验证输入
+    let isValid = true;
+    
+    if (!username) {
+        APIService.showError('usernameError', '请输入用户名');
+        isValid = false;
+    } else if (username.length < 2 || username.length > 50) {
+        APIService.showError('usernameError', '用户名长度应在2-50个字符之间');
+        isValid = false;
+    } else {
+        APIService.hideError('usernameError');
+    }
+    
+    if (email && !isValidEmail(email)) {
+        APIService.showError('emailError', '邮箱格式不正确');
+        isValid = false;
+    } else {
+        APIService.hideError('emailError');
+    }
+    
+    if (!purpose) {
+        APIService.showError('purposeError', '请选择使用目的');
+        isValid = false;
+    } else {
+        APIService.hideError('purposeError');
+    }
+    
+    if (!isValid) return;
+    
+    APIService.showLoading('applyBtn', '正在提交...');
+    
+    try {
+        // 调用API提交申请
+        const result = await APIService.applyInvitation(username, email, purpose, notes);
+        
+        if (result.success) {
+            // 保存申请信息到本地存储
+            const applicationData = {
+                id: result.application.id,
+                username: result.application.username,
+                email: result.application.email,
+                purpose: result.application.purpose,
+                status: result.application.status,
+                submittedAt: result.application.created_at,
+                lastChecked: new Date().toISOString()
+            };
             
-            // 验证输入
-            let isValid = true;
+            localStorage.setItem('current_application', JSON.stringify(applicationData));
             
-            if (!username) {
-                APIService.showError('usernameError', '请输入用户名');
-                isValid = false;
-            } else if (username.length < 2 || username.length > 50) {
-                APIService.showError('usernameError', '用户名长度应在2-50个字符之间');
-                isValid = false;
-            } else {
-                APIService.hideError('usernameError');
-            }
+            // 显示申请结果
+            showApplicationResult(result.application);
             
-            if (email && !isValidEmail(email)) {
-                APIService.showError('emailError', '邮箱格式不正确');
-                isValid = false;
-            } else {
-                APIService.hideError('emailError');
-            }
+            // 启动状态轮询检查
+            startStatusPolling(result.application.id);
             
-            if (!purpose) {
-                APIService.showError('purposeError', '请选择使用目的');
-                isValid = false;
-            } else {
-                APIService.hideError('purposeError');
-            }
+            // 显示成功消息
+            document.getElementById('applicationResult').textContent = 
+                '✅ 申请已提交！正在等待管理员审核，请稍后查看状态。';
+            document.getElementById('applicationResult').className = 'success-message';
+            document.getElementById('applicationResult').style.display = 'block';
             
-            if (!isValid) return;
+            // 重置表单
+            resetForm();
             
-            APIService.showLoading('applyBtn', '正在提交...');
-            
-            try {
-                const result = await APIService.applyInvitation(username, email, purpose, notes);
-                
-                if (result.success) {
-                    // 显示申请结果
-                    showApplicationResult(result.data);
-                    
-                    // 显示成功消息
-                    document.getElementById('applicationResult').textContent = 
-                        '申请已提交！请等待管理员审核。';
-                    document.getElementById('applicationResult').className = 'success-message';
-                    document.getElementById('applicationResult').style.display = 'block';
-                    
-                    // 重置表单
-                    resetForm();
-                    
-                } else {
-                    APIService.showMessage('申请失败', result.error || '未知错误');
-                }
-                
-            } catch (error) {
-                console.error('申请失败:', error);
-                
-                if (!navigator.onLine) {
-                    APIService.showMessage('网络错误', '网络连接已断开，请检查网络');
-                } else if (error.message.includes('Failed to fetch')) {
-                    APIService.showMessage('服务器错误', '无法连接到服务器，请稍后重试');
-                } else {
-                    APIService.showMessage('错误', '申请失败：' + error.message);
-                }
-                
-            } finally {
-                APIService.hideLoading('applyBtn', '提交申请');
-            }
+        } else {
+            APIService.showMessage('申请失败', result.error || '未知错误');
         }
+        
+    } catch (error) {
+        console.error('申请失败:', error);
+        
+        if (!navigator.onLine) {
+            APIService.showMessage('网络错误', '网络连接已断开，请检查网络');
+        } else if (error.message.includes('Failed to fetch')) {
+            APIService.showMessage('服务器错误', '无法连接到服务器，请稍后重试');
+        } else {
+            APIService.showMessage('错误', '申请失败：' + error.message);
+        }
+        
+    } finally {
+        APIService.hideLoading('applyBtn', '提交申请');
+    }
+}
+// 启动状态轮询
+function startStatusPolling(applicationId) {
+    let checkCount = 0;
+    const maxChecks = 60; // 最多检查60次（30分钟，每30秒一次）
+    
+    const pollInterval = setInterval(async () => {
+        if (checkCount >= maxChecks) {
+            clearInterval(pollInterval);
+            showInfoMessage('审核时间可能较长，请稍后手动检查状态');
+            return;
+        }
+        
+        try {
+            const result = await checkApplicationStatus(applicationId);
+            
+            if (result.success) {
+                const status = result.application.status;
+                const statusElement = document.getElementById('applicationStatus');
+                
+                // 更新状态显示
+                statusElement.textContent = getStatusText(status);
+                statusElement.className = 'history-status ' + getStatusClass(status);
+                
+                // 如果状态不是pending，停止轮询
+                if (status !== 'pending') {
+                    clearInterval(pollInterval);
+                    
+                    // 更新本地存储
+                    const currentApp = JSON.parse(localStorage.getItem('current_application') || '{}');
+                    currentApp.status = status;
+                    if (result.application.generated_code) {
+                        currentApp.generated_code = result.application.generated_code;
+                    }
+                    currentApp.lastChecked = new Date().toISOString();
+                    localStorage.setItem('current_application', JSON.stringify(currentApp));
+                    
+                    // 显示最终结果
+                    if (status === 'completed' && result.application.generated_code) {
+                        const finalMessage = `🎉 恭喜！您的申请已通过审核！\n\n邀请码: ${result.application.generated_code}\n\n邀请码已自动复制到剪贴板，请在注册页面使用。`;
+                        
+                        // 自动复制到剪贴板
+                        navigator.clipboard.writeText(result.application.generated_code).then(() => {
+                            APIService.showMessage('申请已批准', finalMessage);
+                        }).catch(() => {
+                            APIService.showMessage('申请已批准', finalMessage + '\n\n请手动复制邀请码。');
+                        });
+                        
+                        // 在页面上显示邀请码
+                        document.getElementById('applicationResult').innerHTML = 
+                            `<div style="color: #28a745; font-weight: bold;">
+                                ✅ 申请已批准！<br>
+                                您的邀请码: <code style="background: #e9ecef; padding: 5px 10px; border-radius: 4px; font-size: 16px;">${result.application.generated_code}</code><br>
+                                邀请码已自动复制到剪贴板
+                            </div>`;
+                        
+                    } else if (status === 'rejected') {
+                        const reason = result.application.review_notes || '未提供原因';
+                        APIService.showMessage('申请被拒绝', `您的申请已被拒绝。\n\n原因: ${reason}\n\n您可以重新提交申请。`);
+                        
+                        document.getElementById('applicationResult').innerHTML = 
+                            `<div style="color: #dc3545;">
+                                ❌ 申请被拒绝<br>
+                                原因: ${reason}
+                            </div>`;
+                    }
+                }
+            }
+            
+            checkCount++;
+        } catch (error) {
+            console.error('检查状态失败:', error);
+        }
+    }, 30000); // 每30秒检查一次
+    
+    // 保存轮询ID以便可能需要时停止
+    localStorage.setItem('poll_interval_id', pollInterval);
+}
 
+// 检查申请状态
+async function checkApplicationStatus(applicationId) {
+    try {
+        const response = await fetch(`${API_CONFIG.getBaseUrl()}/api/invitation/check/${applicationId}`);
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('检查状态失败:', error);
+        throw error;
+    }
+}
+
+// 获取状态文本
+function getStatusText(status) {
+    const statusMap = {
+        'pending': '审核中',
+        'completed': '已批准',
+        'rejected': '已拒绝'
+    };
+    return statusMap[status] || status;
+}
+
+// 获取状态样式类
+function getStatusClass(status) {
+    const classMap = {
+        'pending': 'status-pending',
+        'completed': 'status-available',
+        'rejected': 'status-rejected'
+    };
+    return classMap[status] || 'status-pending';
+}
+
+// 显示申请结果
+function showApplicationResult(application) {
+    document.getElementById('applicationIdDisplay').textContent = application.id;
+    document.getElementById('appliedUsername').textContent = application.username;
+    document.getElementById('applicationTime').textContent = 
+        new Date(application.created_at).toLocaleString('zh-CN');
+    
+    // 根据状态设置样式
+    const statusEl = document.getElementById('applicationStatus');
+    statusEl.textContent = getStatusText(application.status);
+    statusEl.className = 'history-status ' + getStatusClass(application.status);
+    
+    document.getElementById('resultBox').style.display = 'block';
+}
+
+// 显示信息消息
+function showInfoMessage(message) {
+    document.getElementById('applicationResult').textContent = message;
+    document.getElementById('applicationResult').className = 'info-message';
+    document.getElementById('applicationResult').style.display = 'block';
+}
+
+// 显示成功消息
+function showSuccessMessage(message) {
+    document.getElementById('applicationResult').textContent = message;
+    document.getElementById('applicationResult').className = 'success-message';
+    document.getElementById('applicationResult').style.display = 'block';
+}
+
+// 显示错误消息
+function showErrorMessage(message) {
+    document.getElementById('applicationResult').textContent = message;
+    document.getElementById('applicationResult').className = 'error-message';
+    document.getElementById('applicationResult').style.display = 'block';
+}
         // 显示申请结果
         function showApplicationResult(data) {
             document.getElementById('applicationIdDisplay').textContent = data.applicationId;
