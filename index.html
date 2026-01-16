@@ -1080,25 +1080,36 @@
                 }, 3000);
             },
 
-            // 通用请求方法
+            // 通用请求方法 - 修复版：确保认证令牌正确传递
             async request(endpoint, method = 'GET', data = null, requiresAuth = false) {
                 const url = `${API_CONFIG.getBaseUrl()}${endpoint}`;
                 
-                if (IS_DEVELOPMENT) {
-                    console.log(`API请求: ${method} ${endpoint}`);
-                }
+                console.log(`🚀 API请求: ${method} ${endpoint}`, { requiresAuth, data });
                 
                 const headers = {
                     'Content-Type': 'application/json',
                 };
                 
-                // 添加认证头
+                // 添加认证头 - 修复认证令牌获取逻辑
                 if (requiresAuth) {
-                    const token = localStorage.getItem('authToken');
+                    // 尝试多种方式获取令牌
+                    let token = localStorage.getItem('authToken') || 
+                               localStorage.getItem('token') ||
+                               localStorage.getItem('userToken');
+                    
+                    console.log('🔍 查找认证令牌:', {
+                        authToken: localStorage.getItem('authToken'),
+                        token: localStorage.getItem('token'),
+                        userToken: localStorage.getItem('userToken'),
+                        found: !!token
+                    });
+                    
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
-                    } else if (IS_DEVELOPMENT) {
-                        console.warn('需要认证但未找到令牌');
+                        console.log('✅ 已添加认证头');
+                    } else {
+                        console.warn('⚠️ 需要认证但未找到令牌');
+                        throw new Error('MISSING_TOKEN');
                     }
                 }
                 
@@ -1108,35 +1119,59 @@
                     body: data ? JSON.stringify(data) : null
                 };
                 
+                console.log('📤 请求配置:', {
+                    url,
+                    method,
+                    headers: options.headers,
+                    hasBody: !!data
+                });
+                
                 try {
                     const response = await fetch(url, options);
                     
+                    console.log(`📥 响应状态: ${response.status}`);
+                    
                     if (!response.ok) {
                         const errorText = await response.text();
-                        if (IS_DEVELOPMENT) {
-                            console.error(`HTTP错误 ${response.status}:`, errorText);
+                        console.error(`❌ HTTP错误 ${response.status}:`, errorText);
+                        
+                        // 处理认证错误
+                        if (response.status === 401) {
+                            // 清除无效令牌
+                            localStorage.removeItem('authToken');
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('userToken');
+                            
+                            // 显示登录提示
+                            setTimeout(() => {
+                                alert('登录已过期，请重新登录');
+                                UserSystem.showLoginModal();
+                            }, 500);
+                            
+                            throw new Error('AUTH_EXPIRED');
                         }
-                        throw new Error(`HTTP错误 ${response.status}`);
+                        
+                        throw new Error(`HTTP错误 ${response.status}: ${errorText}`);
                     }
                     
                     const result = await response.json();
-                    
-                    if (IS_DEVELOPMENT && endpoint === API_CONFIG.endpoints.history) {
-                        console.log(`历史记录加载: ${result.records ? result.records.length : 0} 条`);
-                    }
+                    console.log(`✅ 请求成功:`, result);
                     
                     return result;
                     
                 } catch (error) {
-                    if (IS_DEVELOPMENT) {
-                        console.error(`API请求失败 (${endpoint}):`, error);
-                    }
+                    console.error(`💥 API请求失败 (${endpoint}):`, error);
                     
                     // 检查网络状态
                     if (!navigator.onLine) {
                         this.showNetworkStatus(false, '网络连接已断开，正在使用本地存储');
                     } else if (error.message.includes('Failed to fetch')) {
                         this.showNetworkStatus(false, '无法连接到服务器，正在使用本地存储');
+                    }
+                    
+                    // 如果是认证错误，重新抛出
+                    if (error.message === 'MISSING_TOKEN' || error.message === 'AUTH_EXPIRED') {
+                        throw error;
                     }
                     
                     throw error;
@@ -1149,9 +1184,7 @@
                     const response = await this.request(API_CONFIG.endpoints.test);
                     return response;
                 } catch (error) {
-                    if (IS_DEVELOPMENT) {
-                        console.error('服务器连接测试失败:', error);
-                    }
+                    console.error('服务器连接测试失败:', error);
                     return { success: false, error: error.message };
                 }
             },
@@ -1165,16 +1198,27 @@
                 });
             },
 
-            // 用户登录
+            // 用户登录 - 修复版：确保正确保存令牌
             login: async function(username, password) {
+                console.log('🔐 开始登录流程...');
+                
                 const result = await this.request(API_CONFIG.endpoints.login, 'POST', {
                     username,
                     password
                 });
                 
-                // 如果登录成功，保存token
+                console.log('📋 登录响应:', result);
+                
+                // 如果登录成功，保存token到多个键以确保兼容性
                 if (result.success && result.token) {
+                    console.log('💾 保存认证令牌:', result.token);
+                    
+                    // 保存到多个键确保兼容性
                     localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('token', result.token);
+                    localStorage.setItem('userToken', result.token);
+                    
+                    console.log('✅ 令牌保存完成');
                 }
                 
                 return result;
@@ -1268,22 +1312,25 @@
         const UserSystem = {
             // 初始化用户数据
             init: function() {
-                if (IS_DEVELOPMENT) {
-                    console.log('开始初始化用户系统...');
-                }
+                console.log('🔐 开始初始化用户系统...');
 
                 // 检查登录状态
                 this.checkLoginStatus();
 
-                if (IS_DEVELOPMENT) {
-                    console.log('用户系统初始化完成');
-                }
+                console.log('✅ 用户系统初始化完成');
             },
 
             // 检查登录状态
             checkLoginStatus: function() {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-                if (currentUser) {
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                console.log('🔍 检查登录状态:', { 
+                    hasCurrentUser: !!currentUser, 
+                    hasToken: !!token 
+                });
+                
+                if (currentUser && token) {
                     this.updateUI(currentUser);
                     
                     // 更新试用信息显示
@@ -1399,7 +1446,7 @@
                 document.getElementById('registerModal').style.display = 'none';
             },
 
-            // 登录
+            // 登录 - 修复版：确保正确处理认证
             login: async function() {
                 const username = document.getElementById('loginUsername').value.trim();
                 const password = document.getElementById('loginPassword').value.trim();
@@ -1427,21 +1474,21 @@
                     const result = await APIService.login(username, password);
                     APIService.hideGlobalLoading();
                     
+                    console.log('登录结果:', result);
+                    
                     if (result.success) {
                         // 保存用户信息
                         const user = {
                             id: result.user.id,
                             username: result.user.username,
-                            userType: result.user.user_type || result.user.userType,
-                            trialCount: result.user.trial_count || 0,
+                            userType: result.user.userType || result.user.user_type,
+                            trialCount: result.user.trialCount || result.user.trial_count || 0,
                             trialEndDate: result.user.trial_end_date
                         };
                         
-                        // 确保保存令牌
-                        if (result.token) {
-                            localStorage.setItem('authToken', result.token);
-                        }
+                        console.log('保存用户信息:', user);
                         
+                        // 保存用户信息到localStorage
                         localStorage.setItem('currentUser', JSON.stringify(user));
                         
                         // 更新UI
@@ -1454,17 +1501,23 @@
                         await loadHistory();
                         
                         // 显示成功消息
-                        alert(`欢迎回来，${user.username}！`);
+                        alert(`✅ 登录成功！欢迎回来，${user.username}！`);
                     } else {
                         this.showError('loginPasswordError', result.error || '登录失败');
                     }
                 } catch (error) {
                     APIService.hideGlobalLoading();
-                    this.showError('loginPasswordError', '网络错误，请重试');
+                    console.error('登录错误:', error);
+                    
+                    if (error.message.includes('MISSING_TOKEN')) {
+                        this.showError('loginPasswordError', '登录成功但令牌保存失败，请重试');
+                    } else {
+                        this.showError('loginPasswordError', '网络错误，请重试');
+                    }
                 }
             },
 
-            // 注册
+            // 注册 - 修复版：确保保存令牌
             register: async function() {
                 const username = document.getElementById('registerUsername').value.trim();
                 const password = document.getElementById('registerPassword').value.trim();
@@ -1508,6 +1561,8 @@
                     const result = await APIService.register(username, password, invitationCode);
                     APIService.hideGlobalLoading();
                     
+                    console.log('注册结果:', result);
+                    
                     if (result.success) {
                         // 保存用户信息
                         const user = {
@@ -1519,6 +1574,14 @@
                         
                         localStorage.setItem('currentUser', JSON.stringify(user));
                         
+                        // 保存令牌（如果服务器返回）
+                        if (result.token) {
+                            console.log('注册成功，保存令牌:', result.token);
+                            localStorage.setItem('authToken', result.token);
+                            localStorage.setItem('token', result.token);
+                            localStorage.setItem('userToken', result.token);
+                        }
+                        
                         // 更新UI
                         this.updateUI(user);
                         
@@ -1529,23 +1592,30 @@
                         await loadHistory();
                         
                         // 显示成功消息
-                        alert(`注册成功！欢迎${user.userType === 'registered' ? '注册会员' : '试用用户'}${user.username}`);
+                        alert(`✅ 注册成功！欢迎${user.userType === 'registered' ? '注册会员' : '试用用户'}${user.username}`);
                     } else {
                         this.showError('invitationCodeError', result.error || '注册失败');
                     }
                 } catch (error) {
                     APIService.hideGlobalLoading();
+                    console.error('注册错误:', error);
                     this.showError('invitationCodeError', '网络错误，请重试');
                 }
             },
 
-            // 退出登录
+            // 退出登录 - 修复版：清除所有认证信息
             logout: function() {
+                console.log('🚪 用户退出登录');
+                
+                // 清除所有用户相关数据
                 localStorage.removeItem('currentUser');
                 localStorage.removeItem('authToken');
+                localStorage.removeItem('token');
+                localStorage.removeItem('userToken');
+                
                 this.showGuestUI();
                 loadHistory();
-                alert('已退出登录');
+                alert('✅ 已退出登录');
             },
 
             // 检查是否可以保存记录（游客）
@@ -1577,153 +1647,152 @@
 
             // 刷新邀请码列表
             refreshInvitationCodeList: async function() {
-        try {
-            const result = await APIService.getInvitationCodes();
-            const selectElement = document.getElementById('invitationCode');
-            
-            // 清空现有选项
-            while (selectElement.options.length > 1) {
-                selectElement.remove(1);
-            }
-            
-            if (result.success && result.codes && result.codes.length > 0) {
-                result.codes.forEach(code => {
-                    const option = document.createElement('option');
-                    option.value = code.code;
-                    option.textContent = `${code.code} (${code.created_by})`;
-                    selectElement.appendChild(option);
-                });
-            } else {
-                const option = document.createElement('option');
-                option.value = "";
-                option.textContent = "暂无可用邀请码";
-                selectElement.appendChild(option);
-            }
-        } catch (error) {
-            if (IS_DEVELOPMENT) {
-                console.error('获取邀请码失败:', error);
-            }
-        }
-        
-        // 同时检查本地存储中的邀请码文件
-        this.loadLocalInvitationCodes();
-    },
-    // 加载本地存储的邀请码
-    loadLocalInvitationCodes: function() {
-        try {
-            const invitationFileData = localStorage.getItem('invitation_codes_file');
-            if (invitationFileData) {
-                const codes = JSON.parse(invitationFileData);
-                const selectElement = document.getElementById('invitationCode');
-                
-                // 添加本地邀请码选项
-                codes.forEach(code => {
-                    const option = document.createElement('option');
-                    option.value = code.code;
-                    option.textContent = `${code.code} (本地文件导入)`;
-                    selectElement.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error('加载本地邀请码失败:', error);
-        }
-    },
-    
-    // 处理文件导入
-    handleFileImport: function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        // 检查文件类型
-        if (!file.name.endsWith('.dat') && !file.name.endsWith('.txt')) {
-            alert('请选择 .dat 或 .txt 格式的邀请码文件');
-            return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            try {
-                const content = e.target.result;
-                let codes = [];
-                
-                // 尝试解析文件内容
                 try {
-                    // 假设是JSON格式
-                    const data = JSON.parse(content);
-                    if (Array.isArray(data)) {
-                        codes = data;
-                    } else if (data.codes && Array.isArray(data.codes)) {
-                        codes = data.codes;
-                    } else {
-                        // 尝试按行解析文本文件
-                        const lines = content.split('\n');
-                        codes = lines
-                            .map(line => line.trim())
-                            .filter(line => line.length > 0)
-                            .map(line => ({ code: line }));
+                    const result = await APIService.getInvitationCodes();
+                    const selectElement = document.getElementById('invitationCode');
+                    
+                    // 清空现有选项
+                    while (selectElement.options.length > 1) {
+                        selectElement.remove(1);
                     }
-                } catch (jsonError) {
-                    // 如果JSON解析失败，尝试按行解析
-                    const lines = content.split('\n');
-                    codes = lines
-                        .map(line => line.trim())
-                        .filter(line => line.length > 0)
-                        .map(line => ({ code: line }));
+                    
+                    if (result.success && result.codes && result.codes.length > 0) {
+                        result.codes.forEach(code => {
+                            const option = document.createElement('option');
+                            option.value = code.code;
+                            option.textContent = `${code.code} (${code.created_by})`;
+                            selectElement.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "暂无可用邀请码";
+                        selectElement.appendChild(option);
+                    }
+                } catch (error) {
+                    console.error('获取邀请码失败:', error);
                 }
                 
-                if (codes.length === 0) {
-                    alert('文件中没有找到有效的邀请码');
+                // 同时检查本地存储中的邀请码文件
+                this.loadLocalInvitationCodes();
+            },
+            
+            // 加载本地存储的邀请码
+            loadLocalInvitationCodes: function() {
+                try {
+                    const invitationFileData = localStorage.getItem('invitation_codes_file');
+                    if (invitationFileData) {
+                        const codes = JSON.parse(invitationFileData);
+                        const selectElement = document.getElementById('invitationCode');
+                        
+                        // 添加本地邀请码选项
+                        codes.forEach(code => {
+                            const option = document.createElement('option');
+                            option.value = code.code;
+                            option.textContent = `${code.code} (本地文件导入)`;
+                            selectElement.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('加载本地邀请码失败:', error);
+                }
+            },
+            
+            // 处理文件导入
+            handleFileImport: function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // 检查文件类型
+                if (!file.name.endsWith('.dat') && !file.name.endsWith('.txt')) {
+                    alert('请选择 .dat 或 .txt 格式的邀请码文件');
                     return;
                 }
                 
-                // 保存到本地存储
-                localStorage.setItem('invitation_codes_file', JSON.stringify(codes));
+                const reader = new FileReader();
                 
-                // 更新下拉列表
-                this.loadLocalInvitationCodes();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        let codes = [];
+                        
+                        // 尝试解析文件内容
+                        try {
+                            // 假设是JSON格式
+                            const data = JSON.parse(content);
+                            if (Array.isArray(data)) {
+                                codes = data;
+                            } else if (data.codes && Array.isArray(data.codes)) {
+                                codes = data.codes;
+                            } else {
+                                // 尝试按行解析文本文件
+                                const lines = content.split('\n');
+                                codes = lines
+                                    .map(line => line.trim())
+                                    .filter(line => line.length > 0)
+                                    .map(line => ({ code: line }));
+                            }
+                        } catch (jsonError) {
+                            // 如果JSON解析失败，尝试按行解析
+                            const lines = content.split('\n');
+                            codes = lines
+                                .map(line => line.trim())
+                                .filter(line => line.length > 0)
+                                .map(line => ({ code: line }));
+                        }
+                        
+                        if (codes.length === 0) {
+                            alert('文件中没有找到有效的邀请码');
+                            return;
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('invitation_codes_file', JSON.stringify(codes));
+                        
+                        // 更新下拉列表
+                        this.loadLocalInvitationCodes();
+                        
+                        alert(`✅ 成功导入 ${codes.length} 个邀请码！请刷新列表查看。`);
+                        
+                    } catch (error) {
+                        alert('文件解析失败: ' + error.message);
+                    }
+                };
                 
-                alert(`成功导入 ${codes.length} 个邀请码！请刷新列表查看。`);
+                reader.onerror = () => {
+                    alert('文件读取失败，请重试');
+                };
                 
-            } catch (error) {
-                alert('文件解析失败: ' + error.message);
+                reader.readAsText(file);
+            },
+            
+            // 手动输入邀请码
+            showManualInvitationInput: function() {
+                const code = prompt('请输入邀请码:');
+                if (!code) return;
+                
+                const selectElement = document.getElementById('invitationCode');
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${code} (手动输入)`;
+                selectElement.appendChild(option);
+                
+                alert('✅ 邀请码已添加，请从下拉列表中选择');
+            },
+            
+            // 刷新邀请码列表（用于刷新按钮）
+            refreshInviteList: function() {
+                // 清空下拉列表
+                const selectElement = document.getElementById('invitationCode');
+                while (selectElement.options.length > 1) {
+                    selectElement.remove(1);
+                }
+                
+                // 重新加载服务器邀请码
+                this.refreshInvitationCodeList();
+                
+                alert('✅ 邀请码列表已刷新！');
             }
-        };
-        
-        reader.onerror = () => {
-            alert('文件读取失败，请重试');
-        };
-        
-        reader.readAsText(file);
-    },
-    
-    // 手动输入邀请码
-    showManualInvitationInput: function() {
-        const code = prompt('请输入邀请码:');
-        if (!code) return;
-        
-        const selectElement = document.getElementById('invitationCode');
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = `${code} (手动输入)`;
-        selectElement.appendChild(option);
-        
-        alert('邀请码已添加，请从下拉列表中选择');
-    },
-    
-    // 刷新邀请码列表（用于刷新按钮）
-    refreshInviteList: function() {
-        // 清空下拉列表
-        const selectElement = document.getElementById('invitationCode');
-        while (selectElement.options.length > 1) {
-            selectElement.remove(1);
-        }
-        
-        // 重新加载服务器邀请码
-        this.refreshInvitationCodeList();
-        
-        alert('邀请码列表已刷新！');
-    }
         };
 
         // ============== 盘口类型切换功能 ============== //
@@ -1965,7 +2034,24 @@
 
         // ============== 保存记录功能 ============== //
         async function saveAsianRecord() {
+            console.log('💾 开始保存让球盘记录...');
+            
+            // 获取当前用户和令牌信息
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            
+            console.log('🔍 用户状态:', { 
+                currentUser, 
+                hasToken: !!token,
+                tokenLength: token ? token.length : 0 
+            });
+            
+            // 检查用户登录状态
+            if (!currentUser || !token) {
+                alert('请先登录才能保存记录！');
+                UserSystem.showLoginModal();
+                return;
+            }
             
             // 验证数据
             const matchName = document.getElementById('asian-match-name').value.trim();
@@ -1976,7 +2062,7 @@
             const historicalRecord = document.getElementById('asian-historical-record').value;
             const recommendationResult = document.getElementById('asian-recommendation-result').textContent;
 
-            // 验证数据
+            // 验证数据完整性
             if (!matchName) {
                 alert('请先输入赛事名称！');
                 return;
@@ -2010,20 +2096,20 @@
                 actual_result: ""
             };
 
-            // 如果已登录，添加用户ID
-            if (currentUser) {
-                record.user_id = currentUser.id;
-            }
+            console.log('📝 准备保存的记录:', record);
 
             try {
                 APIService.showGlobalLoading('正在保存记录...');
                 
                 // 尝试保存到服务器
+                console.log('🚀 发送保存请求...');
                 const result = await APIService.saveRecord(record);
                 
                 APIService.hideGlobalLoading();
                 
                 if (result.success) {
+                    console.log('✅ 服务器保存成功:', result);
+                    
                     // 重新加载历史记录
                     await loadHistory();
                     
@@ -2031,7 +2117,7 @@
                     resetAsianForm();
                     
                     // 显示成功消息
-                    let successMsg = '让球盘记录已保存到服务器！';
+                    let successMsg = '✅ 让球盘记录已保存到服务器！';
                     
                     // 如果是试用用户，显示剩余次数
                     if (currentUser && currentUser.userType === 'trial') {
@@ -2042,6 +2128,8 @@
                     
                 } else {
                     // 处理服务器错误
+                    console.error('❌ 服务器保存失败:', result);
+                    
                     if (result.error && result.error.includes('试用')) {
                         alert('试用限制: ' + result.error + '\n请注册成为会员继续使用！');
                         UserSystem.showRegisterModal();
@@ -2052,9 +2140,19 @@
                 
             } catch (error) {
                 APIService.hideGlobalLoading();
+                console.error('💥 保存记录过程中出错:', error);
                 
-                // 如果用户是游客或者服务器保存失败，尝试本地存储
-                if (!currentUser || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                // 处理认证错误
+                if (error.message === 'MISSING_TOKEN' || error.message === 'AUTH_EXPIRED') {
+                    alert('认证已过期，请重新登录！');
+                    UserSystem.showLoginModal();
+                    return;
+                }
+                
+                // 处理其他网络错误
+                if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                    console.log('🌐 网络错误，尝试本地存储...');
+                    
                     // 检查游客试用次数
                     if (!currentUser && !UserSystem.canGuestSaveRecord()) {
                         alert('试用次数已用完（最多18次）。请注册成为会员继续使用！');
@@ -2074,16 +2172,33 @@
                     // 重置表单
                     resetAsianForm();
                     
-                    alert('记录已保存到本地存储（网络恢复后将自动同步）！');
+                    alert('⚠️ 网络连接失败，记录已保存到本地存储（网络恢复后将自动同步）！');
                     
                 } else {
-                    alert('保存失败: ' + error.message);
+                    alert('❌ 保存失败: ' + error.message);
                 }
             }
         }
 
         async function saveSizeRecord() {
+            console.log('💾 开始保存大小盘记录...');
+            
+            // 获取当前用户和令牌信息
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            
+            console.log('🔍 用户状态:', { 
+                currentUser, 
+                hasToken: !!token,
+                tokenLength: token ? token.length : 0 
+            });
+            
+            // 检查用户登录状态
+            if (!currentUser || !token) {
+                alert('请先登录才能保存记录！');
+                UserSystem.showLoginModal();
+                return;
+            }
             
             // 验证数据
             const matchName = document.getElementById('size-match-name').value.trim();
@@ -2094,7 +2209,7 @@
             const historicalRecord = document.getElementById('size-historical-record').value;
             const recommendationResult = document.getElementById('size-recommendation-result').textContent;
 
-            // 验证数据
+            // 验证数据完整性
             if (!matchName) {
                 alert('请先输入赛事名称！');
                 return;
@@ -2128,20 +2243,20 @@
                 actual_result: ""
             };
 
-            // 如果已登录，添加用户ID
-            if (currentUser) {
-                record.user_id = currentUser.id;
-            }
+            console.log('📝 准备保存的记录:', record);
 
             try {
                 APIService.showGlobalLoading('正在保存记录...');
                 
                 // 尝试保存到服务器
+                console.log('🚀 发送保存请求...');
                 const result = await APIService.saveRecord(record);
                 
                 APIService.hideGlobalLoading();
                 
                 if (result.success) {
+                    console.log('✅ 服务器保存成功:', result);
+                    
                     // 重新加载历史记录
                     await loadHistory();
                     
@@ -2149,7 +2264,7 @@
                     resetSizeForm();
                     
                     // 显示成功消息
-                    let successMsg = '大小盘记录已保存到服务器！';
+                    let successMsg = '✅ 大小盘记录已保存到服务器！';
                     
                     // 如果是试用用户，显示剩余次数
                     if (currentUser && currentUser.userType === 'trial') {
@@ -2160,6 +2275,8 @@
                     
                 } else {
                     // 处理服务器错误
+                    console.error('❌ 服务器保存失败:', result);
+                    
                     if (result.error && result.error.includes('试用')) {
                         alert('试用限制: ' + result.error + '\n请注册成为会员继续使用！');
                         UserSystem.showRegisterModal();
@@ -2170,9 +2287,19 @@
                 
             } catch (error) {
                 APIService.hideGlobalLoading();
+                console.error('💥 保存记录过程中出错:', error);
                 
-                // 如果用户是游客或者服务器保存失败，尝试本地存储
-                if (!currentUser || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                // 处理认证错误
+                if (error.message === 'MISSING_TOKEN' || error.message === 'AUTH_EXPIRED') {
+                    alert('认证已过期，请重新登录！');
+                    UserSystem.showLoginModal();
+                    return;
+                }
+                
+                // 处理其他网络错误
+                if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                    console.log('🌐 网络错误，尝试本地存储...');
+                    
                     // 检查游客试用次数
                     if (!currentUser && !UserSystem.canGuestSaveRecord()) {
                         alert('试用次数已用完（最多18次）。请注册成为会员继续使用！');
@@ -2192,10 +2319,10 @@
                     // 重置表单
                     resetSizeForm();
                     
-                    alert('记录已保存到本地存储（网络恢复后将自动同步）！');
+                    alert('⚠️ 网络连接失败，记录已保存到本地存储（网络恢复后将自动同步）！');
                     
                 } else {
-                    alert('保存失败: ' + error.message);
+                    alert('❌ 保存失败: ' + error.message);
                 }
             }
         }
@@ -2220,20 +2347,17 @@
                 let localRecords = [];
                 
                 // 如果已登录且有认证令牌，尝试从服务器加载记录
-                const token = localStorage.getItem('authToken');
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
                 if (currentUser && token) {
                     try {
+                        console.log('🔄 从服务器加载历史记录...');
                         const result = await APIService.getHistory();
                         if (result.success && result.records) {
                             serverRecords = result.records;
-                            if (IS_DEVELOPMENT) {
-                                console.log('从服务器加载了', serverRecords.length, '条记录');
-                            }
+                            console.log('✅ 从服务器加载了', serverRecords.length, '条记录');
                         }
                     } catch (error) {
-                        if (IS_DEVELOPMENT) {
-                            console.log('从服务器加载记录失败:', error.message);
-                        }
+                        console.log('⚠️ 从服务器加载记录失败:', error.message);
                     }
                 }
                 
@@ -2320,9 +2444,7 @@
                 updateChartData(allRecords);
                 
             } catch (error) {
-                if (IS_DEVELOPMENT) {
-                    console.error('加载历史记录失败:', error);
-                }
+                console.error('❌ 加载历史记录失败:', error);
                 tableBody.innerHTML = '';
                 const errorRow = document.createElement('tr');
                 errorRow.innerHTML = `<td colspan="8" style="text-align: center; padding: 30px; font-size: 14px; color: #666;">加载失败: ${error.message}</td>`;
@@ -2346,11 +2468,11 @@
                         APIService.updateRecord(id, { actual_result: value })
                             .then(result => {
                                 if (!result.success) {
-                                    alert('更新失败: ' + (result.error || '未知错误'));
+                                    alert('❌ 更新失败: ' + (result.error || '未知错误'));
                                 }
                             })
                             .catch(error => {
-                                alert('更新失败: ' + error.message);
+                                alert('❌ 更新失败: ' + error.message);
                             });
                     }
                     
@@ -2400,10 +2522,10 @@
                 
                 // 重新加载历史记录
                 await loadHistory();
-                alert('记录已删除！');
+                alert('✅ 记录已删除！');
                 
             } catch (error) {
-                alert('删除失败: ' + error.message);
+                alert('❌ 删除失败: ' + error.message);
             }
         }
 
@@ -2455,11 +2577,11 @@
                 // 重新加载历史记录
                 await loadHistory();
                 
-                alert(`同步完成！\n成功: ${successCount} 条\n失败: ${failCount} 条`);
+                alert(`✅ 同步完成！\n成功: ${successCount} 条\n失败: ${failCount} 条`);
                 
             } catch (error) {
                 APIService.hideGlobalLoading();
-                alert('同步失败: ' + error.message);
+                alert('❌ 同步失败: ' + error.message);
             }
         }
 
@@ -2726,36 +2848,36 @@
             document.getElementById('size-current-water').addEventListener('change', autoCalculateSizeRecommendation);
             document.getElementById('size-historical-record').addEventListener('change', autoCalculateSizeRecommendation);
 
-
             // 绑定文件导入相关事件
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.dat,.txt,.json';
-    fileInput.style.display = 'none';
-    fileInput.id = 'invitationFileInput';
-    document.body.appendChild(fileInput);
-    
-    // 绑定文件导入按钮点击事件
-    document.getElementById('fileImportBtn').addEventListener('click', () => {
-        fileInput.click();
-    });
-    
-    // 绑定文件选择事件
-    fileInput.addEventListener('change', (event) => {
-        UserSystem.handleFileImport(event);
-        // 清空输入以便再次选择同一文件
-        fileInput.value = '';
-    });
-    
-    // 绑定手动输入按钮事件
-    document.getElementById('manualImportBtn').addEventListener('click', () => {
-        UserSystem.showManualInvitationInput();
-    });
-    
-    // 绑定刷新列表按钮事件
-    document.getElementById('refreshInviteListBtn').addEventListener('click', () => {
-        UserSystem.refreshInviteList();
-    });
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.dat,.txt,.json';
+            fileInput.style.display = 'none';
+            fileInput.id = 'invitationFileInput';
+            document.body.appendChild(fileInput);
+            
+            // 绑定文件导入按钮点击事件
+            document.getElementById('fileImportBtn').addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 绑定文件选择事件
+            fileInput.addEventListener('change', (event) => {
+                UserSystem.handleFileImport(event);
+                // 清空输入以便再次选择同一文件
+                fileInput.value = '';
+            });
+            
+            // 绑定手动输入按钮事件
+            document.getElementById('manualImportBtn').addEventListener('click', () => {
+                UserSystem.showManualInvitationInput();
+            });
+            
+            // 绑定刷新列表按钮事件
+            document.getElementById('refreshInviteListBtn').addEventListener('click', () => {
+                UserSystem.refreshInviteList();
+            });
+            
             // 网络状态监听
             window.addEventListener('online', () => {
                 APIService.showNetworkStatus(true, '网络已恢复');
@@ -2768,9 +2890,7 @@
 
         // ============== 主初始化函数 ============== //
         async function initializeApplication() {
-            if (IS_DEVELOPMENT) {
-                console.log('=== 开始应用程序初始化 ===');
-            }
+            console.log('🚀 开始应用程序初始化');
 
             // 第一步：测试服务器连接
             try {
@@ -2807,9 +2927,7 @@
             // 第七步：初始化事件监听器
             initEventListeners();
 
-            if (IS_DEVELOPMENT) {
-                console.log('=== 应用程序初始化完成 ===');
-            }
+            console.log('✅ 应用程序初始化完成');
         }
 
         // ============== 页面加载入口 ============== //
