@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申请管理后台</title>
+    <style>
+        /* 简洁的管理员后台样式 */
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #1e3c72; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .stats { display: flex; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 15px; border-radius: 8px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .applications-table { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; }
+        .status-pending { color: #ffc107; font-weight: bold; }
+        .status-approved { color: #28a745; font-weight: bold; }
+        .status-rejected { color: #dc3545; font-weight: bold; }
+        .status-completed { color: #17a2b8; font-weight: bold; }
+        .action-btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .btn-approve { background: #28a745; color: white; }
+        .btn-reject { background: #dc3545; color: white; }
+        .btn-view { background: #17a2b8; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 500px; max-width: 90%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 邀请码申请管理后台</h1>
+            <p>审核用户申请，管理邀请码发放</p>
+        </div>
+        
+        <div class="stats" id="statsContainer">
+            <!-- 统计信息会动态加载 -->
+        </div>
+        
+        <div class="applications-table">
+            <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                <h3 style="margin: 0;">待审核申请</h3>
+                <div>
+                    <button onclick="loadApplications()" style="padding: 8px 15px; background: #1e3c72; color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 刷新</button>
+                    <button onclick="selectAll()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">📋 全选</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"><input type="checkbox" id="selectAllCheckbox"></th>
+                        <th>申请ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>使用目的</th>
+                        <th>申请时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="applicationsTable">
+                    <!-- 申请列表会动态加载 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3>批量操作</h3>
+            <div>
+                <textarea id="batchNotes" placeholder="批量操作备注（可选）" style="width: 100%; height: 80px; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                <div>
+                    <button onclick="batchAction('approve')" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">✅ 批量批准</button>
+                    <button onclick="batchAction('reject')" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">❌ 批量拒绝</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 审核模态框 -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">审核申请</h3>
+            <div id="modalApplicationInfo" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;"></div>
+            <div>
+                <label>审核备注：</label>
+                <textarea id="reviewNotes" placeholder="请输入审核备注..." style="width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="submitReview('approve')" style="flex: 1; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">✅ 批准并生成邀请码</button>
+                <button onclick="submitReview('reject')" style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">❌ 拒绝申请</button>
+                <button onclick="closeModal()" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentApplicationId = null;
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://footballdream.vercel.app';
+        
+        // 检查管理员登录状态
+        async function checkAdminAuth() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('请先登录管理员账户');
+                window.location.href = '/';
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/info`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (!result.success || result.user.userType !== 'admin') {
+                    alert('需要管理员权限');
+                    window.location.href = '/';
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                alert('验证失败');
+                window.location.href = '/';
+                return false;
+            }
+        }
+        
+        // 加载统计信息
+        async function loadStats() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/api/admin/applications/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    const stats = result.stats;
+                    const statsContainer = document.getElementById('statsContainer');
+                    
+                    statsContainer.innerHTML = `
+                        <div class="stat-card">
+                            <div style="font-size: 24px; font-weight: bold; color: #1e3c72;">${stats.total || 0}</div>
+                            <div>总申请数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px; font-weight: bold; color: #ffc107;">${stats.by_status.pending || 0}</div>
+                            <div>待审核</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px; font-weight: bold; color: #28a745;">${stats.by_status.approved || 0}</div>
+                            <div>已批准</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px; font-weight: bold; color: #dc3545;">${stats.by_status.rejected || 0}</div>
+                            <div>已拒绝</div>
+                        </div>
+                        <div class="stat-card">
+                            <div style="font-size: 24px; font-weight: bold; color: #17a2b8;">${stats.by_status.completed || 0}</div>
+                            <div>已完成</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+        
+        // 加载申请列表
+        async function loadApplications() {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE}/api/admin/applications/pending`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const result = await response.json();
+                const tableBody = document.getElementById('applicationsTable');
+                
+                if (result.success && result.applications.length > 0) {
+                    let html = '';
+                    
+                    result.applications.forEach(app => {
+                        const date = new Date(app.created_at).toLocaleString('zh-CN');
+                        
+                        html += `
+                            <tr>
+                                <td><input type="checkbox" class="app-checkbox" value="${app.application_id}"></td>
+                                <td><strong>${app.application_id}</strong></td>
+                                <td>${app.username}</td>
+                                <td>${app.email || '未提供'}</td>
+                                <td>${app.purpose}</td>
+                                <td>${date}</td>
+                                <td class="status-pending">待审核</td>
+                                <td>
+                                    <button class="action-btn btn-view" onclick="viewApplication('${app.application_id}')">查看</button>
+                                    <button class="action-btn btn-approve" onclick="reviewApplication('${app.application_id}', 'approve')">批准</button>
+                                    <button class="action-btn btn-reject" onclick="reviewApplication('${app.application_id}', 'reject')">拒绝</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableBody.innerHTML = html;
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">暂无待审核申请</td></tr>';
+                }
+            } catch (error) {
+                console.error('加载申请失败:', error);
+                alert('加载申请列表失败');
+            }
+        }
+        
+        // 查看申请详情
+        async function viewApplication(applicationId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/invitation/check/${applicationId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const app = result.application;
+                    let details = `
+                        <strong>申请ID:</strong> ${app.id}<br>
+                        <strong>用户名:</strong> ${app.username}<br>
+                        <strong>邮箱:</strong> ${app.email || '未提供'}<br>
+                        <strong>使用目的:</strong> ${app.purpose}<br>
+                        <strong>备注:</strong> ${app.notes || '无'}<br>
+                        <strong>状态:</strong> <span class="status-${app.status}">${app.status}</span><br>
+                        <strong>申请时间:</strong> ${new Date(app.created_at).toLocaleString('zh-CN')}
+                    `;
+                    
+                    if (app.reviewed_at) {
+                        details += `<br><strong>审核时间:</strong> ${new Date(app.reviewed_at).toLocaleString('zh-CN')}`;
+                    }
+                    
+                    if (app.generated_code) {
+                        details += `<br><strong>生成的邀请码:</strong> <code style="background: #eee; padding: 2px 5px; border-radius: 3px;">${app.generated_code}</code>`;
+                    }
+                    
+                    alert(details);
+                }
+            } catch (error) {
+                console.error('查看申请失败:', error);
+                alert('查看申请详情失败');
+            }
+        }
+        
+        // 打开审核模态框
+        function reviewApplication(applicationId, action) {
+            currentApplicationId = applicationId;
+            document.getElementById('modalTitle').textContent = action === 'approve' ? '批准申请' : '拒绝申请';
+            
+            // 获取申请信息并显示在模态框中
+            fetch(`${API_BASE}/api/invitation/check/${applicationId}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        const app = result.application;
+                        const infoDiv = document.getElementById('modalApplicationInfo');
+                        infoDiv.innerHTML = `
+                            <strong>申请ID:</strong> ${app.id}<br>
+                            <strong>用户名:</strong> ${app.username}<br>
+                            <strong>使用目的:</strong> ${app.purpose}
+                        `;
+                        document.getElementById('reviewModal').style.display = 'flex';
+                    }
+                });
+        }
+        
+        // 提交审核
+        async function submitReview(action) {
+            if (!currentApplicationId) return;
+            
+            const reviewNotes = document.getElementById('reviewNotes').value;
+            const token = localStorage.getItem('authToken');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/applications/${currentApplicationId}/review`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        reviewNotes: reviewNotes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`申请已${action === 'approve' ? '批准' : '拒绝'}！${action === 'approve' ? '邀请码已生成。' : ''}`);
+                    closeModal();
+                    loadStats();
+                    loadApplications();
+                } else {
+                    alert('操作失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('提交审核失败:', error);
+                alert('操作失败，请重试');
+            }
+        }
+        
+        // 批量操作
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('.app-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const isChecked = selectAllCheckbox.checked;
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !isChecked;
+            });
+            
+            selectAllCheckbox.checked = !isChecked;
+        }
+        
+        async function batchAction(action) {
+            const checkboxes = document.querySelectorAll('.app-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要操作的申请');
+                return;
+            }
+            
+            if (!confirm(`确定要批量${action === 'approve' ? '批准' : '拒绝'} ${checkboxes.length} 个申请吗？`)) {
+                return;
+            }
+            
+            const applicationIds = Array.from(checkboxes).map(cb => cb.value);
+            const reviewNotes = document.getElementById('batchNotes').value;
+            const token = localStorage.getItem('authToken');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/applications/batch-action`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        applicationIds: applicationIds,
+                        action: action,
+                        reviewNotes: reviewNotes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`批量操作完成: ${result.message}`);
+                    loadStats();
+                    loadApplications();
+                    document.getElementById('batchNotes').value = '';
+                } else {
+                    alert('批量操作失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('批量操作失败:', error);
+                alert('批量操作失败，请重试');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('reviewModal').style.display = 'none';
+            document.getElementById('reviewNotes').value = '';
+            currentApplicationId = null;
+        }
+        
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAdmin = await checkAdminAuth();
+            if (isAdmin) {
+                loadStats();
+                loadApplications();
+            }
+        });
+    </script>
+</body>
+</html>
