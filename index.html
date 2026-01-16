@@ -1547,12 +1547,16 @@
                     this.hideError('registerConfirmPasswordError');
                 }
 
-                if (!invitationCode) {
-                    this.showError('invitationCodeError', '请选择邀请码');
-                    isValid = false;
-                } else {
-                    this.hideError('invitationCodeError');
-                }
+            // 验证邀请码必须手动输入
+    if (!invitationCode) {
+        this.showError('invitationCodeError', '请输入管理员提供的邀请码');
+        isValid = false;
+    } else if (invitationCode.length < 6) {
+        this.showError('invitationCodeError', '邀请码长度至少6位');
+        isValid = false;
+    } else {
+        this.hideError('invitationCodeError');
+    }
 
                 if (!isValid) return;
 
@@ -1645,37 +1649,22 @@
                 });
             },
 
-            // 刷新邀请码列表
             refreshInvitationCodeList: async function() {
-                try {
-                    const result = await APIService.getInvitationCodes();
-                    const selectElement = document.getElementById('invitationCode');
-                    
-                    // 清空现有选项
-                    while (selectElement.options.length > 1) {
-                        selectElement.remove(1);
-                    }
-                    
-                    if (result.success && result.codes && result.codes.length > 0) {
-                        result.codes.forEach(code => {
-                            const option = document.createElement('option');
-                            option.value = code.code;
-                            option.textContent = `${code.code} (${code.created_by})`;
-                            selectElement.appendChild(option);
-                        });
-                    } else {
-                        const option = document.createElement('option');
-                        option.value = "";
-                        option.textContent = "暂无可用邀请码";
-                        selectElement.appendChild(option);
-                    }
-                } catch (error) {
-                    console.error('获取邀请码失败:', error);
-                }
-                
-                // 同时检查本地存储中的邀请码文件
-                this.loadLocalInvitationCodes();
-            },
+    try {
+        // 不再从服务器获取邀请码
+        const selectElement = document.getElementById('invitationCode');
+        
+        // 如果selectElement存在，清空选项
+        if (selectElement) {
+            selectElement.innerHTML = '<option value="">请手动输入邀请码</option>';
+        }
+        
+        console.log('✅ 邀请码列表已清空，需要手动输入');
+        
+    } catch (error) {
+        console.error('处理邀请码失败:', error);
+    }
+},
             
             // 加载本地存储的邀请码
             loadLocalInvitationCodes: function() {
@@ -2937,3 +2926,4 @@
     </script>
 </body>
 </html>
+
