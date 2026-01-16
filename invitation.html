@@ -830,19 +830,19 @@ function showErrorMessage(message) {
     document.getElementById('applicationResult').style.display = 'block';
 }
         // 显示申请结果
-        function showApplicationResult(data) {
-            document.getElementById('applicationIdDisplay').textContent = data.applicationId;
-            document.getElementById('appliedUsername').textContent = data.username;
-            document.getElementById('applicationTime').textContent = 
-                new Date(data.submittedAt).toLocaleString('zh-CN');
+      //  function showApplicationResult(data) {
+         //   document.getElementById('applicationIdDisplay').textContent = data.applicationId;
+           // document.getElementById('appliedUsername').textContent = data.username;
+          //  document.getElementById('applicationTime').textContent = 
+                //new Date(data.submittedAt).toLocaleString('zh-CN');
             
             // 根据状态设置样式
-            const statusEl = document.getElementById('applicationStatus');
-            statusEl.textContent = getStatusText(data.status);
-            statusEl.className = 'history-status ' + getStatusClass(data.status);
+            //const statusEl = document.getElementById('applicationStatus');
+           // statusEl.textContent = getStatusText(data.status);
+          //  statusEl.className = 'history-status ' + getStatusClass(data.status);
             
-            document.getElementById('resultBox').style.display = 'block';
-        }
+           // document.getElementById('resultBox').style.display = 'block';
+     //   }
 
         // 验证邀请码
         async function validateInvitationCode() {
@@ -1142,7 +1142,112 @@ function showErrorMessage(message) {
                     APIService.hideError('emailError');
                 }
             });
+             // 检查本地是否有未完成的申请
+    const savedApplication = localStorage.getItem('current_application');
+    if (savedApplication) {
+        try {
+            const application = JSON.parse(savedApplication);
+            console.log('找到已保存的申请:', application);
             
+            // 显示申请信息
+            showApplicationResult(application);
+            
+            // 如果申请状态还是pending，重新启动轮询
+            if (application.status === 'pending') {
+                console.log('申请状态为pending，重新启动轮询');
+                startStatusPolling(application.id);
+                
+                // 显示提示信息
+                document.getElementById('applicationResult').innerHTML = 
+                    `<div style="color: #17a2b8;">
+                        🔄 正在自动检查申请状态...<br>
+                        申请ID: <code>${application.id}</code>
+                    </div>`;
+                document.getElementById('applicationResult').style.display = 'block';
+            } else if (application.status === 'completed' && application.generated_code) {
+                // 如果是已完成且有邀请码，显示邀请码
+                document.getElementById('applicationResult').innerHTML = 
+                    `<div style="color: #28a745;">
+                        ✅ 申请已完成！<br>
+                        您的邀请码: <code style="background: #e9ecef; padding: 5px 10px; border-radius: 4px;">${application.generated_code}</code>
+                    </div>`;
+                document.getElementById('applicationResult').style.display = 'block';
+            } else if (application.status === 'rejected') {
+                document.getElementById('applicationResult').innerHTML = 
+                    `<div style="color: #dc3545;">
+                        ❌ 申请被拒绝<br>
+                        请重新提交申请
+                    </div>`;
+                document.getElementById('applicationResult').style.display = 'block';
+            }
+            
+        } catch (error) {
+            console.error('加载保存的申请失败:', error);
+            localStorage.removeItem('current_application');
+        }
+    }
+            // 检查审核状态
+async function checkApplicationStatusManually() {
+    const savedApplication = localStorage.getItem('current_application');
+    if (!savedApplication) {
+        APIService.showMessage('提示', '没有找到申请记录');
+        return;
+    }
+    
+    try {
+        const application = JSON.parse(savedApplication);
+        const result = await checkApplicationStatus(application.id);
+        
+        if (result.success) {
+            const status = result.application.status;
+            
+            // 更新显示
+            const statusEl = document.getElementById('applicationStatus');
+            statusEl.textContent = getStatusText(status);
+            statusEl.className = 'history-status ' + getStatusClass(status);
+            
+            // 更新本地存储
+            application.status = status;
+            if (result.application.generated_code) {
+                application.generated_code = result.application.generated_code;
+            }
+            application.lastChecked = new Date().toISOString();
+            localStorage.setItem('current_application', JSON.stringify(application));
+            
+            if (status === 'completed' && result.application.generated_code) {
+                APIService.showMessage('状态更新', 
+                    `申请状态: 已批准\n邀请码: ${result.application.generated_code}`
+                );
+            } else {
+                APIService.showMessage('状态更新', 
+                    `申请状态: ${getStatusText(status)}`
+                );
+            }
+        }
+    } catch (error) {
+        console.error('检查状态失败:', error);
+        APIService.showMessage('错误', '检查状态失败');
+    }
+}
+document.getElementById('newApplyBtn').addEventListener('click', function() {
+    // 清除轮询
+    const pollId = localStorage.getItem('poll_interval_id');
+    if (pollId) {
+        clearInterval(parseInt(pollId));
+        localStorage.removeItem('poll_interval_id');
+    }
+    
+    // 清除申请记录
+    localStorage.removeItem('current_application');
+    
+    // 隐藏结果框
+    document.getElementById('resultBox').style.display = 'none';
+    
+    // 重置表单
+    resetForm();
+});
+// 绑定检查状态按钮
+document.getElementById('checkStatusBtn').addEventListener('click', checkApplicationStatusManually);
             document.getElementById('validateCode').addEventListener('input', function() {
                 document.getElementById('validateResult').style.display = 'none';
             });
