@@ -977,6 +977,29 @@
                         <div id="size-recommendation-details" style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4;"></div>
                     </div>
                 </div>
+                
+                <!-- 详细统计信息区域 -->
+                <div id="detailed-stats" style="margin-top: 20px; display: none;">
+                    <h3 style="font-size: 16px; color: #1e3c72; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">详细统计分析</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+                        <div style="flex: 1; min-width: 200px; background-color: #f9f9f9; border-radius: 8px; padding: 12px;">
+                            <h4 style="font-size: 14px; color: #1e3c72; margin-top: 0; margin-bottom: 10px;">让球盘统计</h4>
+                            <div id="asian-stats-details" style="font-size: 13px; line-height: 1.6;">
+                                暂无数据
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 200px; background-color: #f9f9f9; border-radius: 8px; padding: 12px;">
+                            <h4 style="font-size: 14px; color: #2a5298; margin-top: 0; margin-bottom: 10px;">大小盘统计</h4>
+                            <div id="size-stats-details" style="font-size: 13px; line-height: 1.6;">
+                                暂无数据
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #666; text-align: center; padding: 8px; background-color: #f0f7ff; border-radius: 6px;">
+                        统计说明：基于历史记录中已填写实际结果的数据进行分析，胜率 = (获胜次数 / 总次数) × 100%
+                    </div>
+                </div>
+                
                 <div class="chart-container">
                     <canvas id="stats-chart"></canvas>
                 </div>
@@ -1018,7 +1041,6 @@
             <p id="apiStatus" style="font-size: 11px; color: #888;">API状态: 正在检查...</p>
         </footer>
     </div>
-
     <script>
         // ============== 全局配置 ============== //
         const IS_DEVELOPMENT = window.location.hostname === 'localhost' || 
@@ -1783,8 +1805,7 @@
                 alert('✅ 邀请码列表已刷新！');
             }
         };
-
-        // ============== 盘口类型切换功能 ============== //
+                // ============== 盘口类型切换功能 ============== //
         function initHandicapTabs() {
             const tabs = document.querySelectorAll('.handicap-tab');
             const contents = document.querySelectorAll('.handicap-content');
@@ -2432,6 +2453,9 @@
                 // 更新图表数据
                 updateChartData(allRecords);
                 
+                // 更新详细统计信息
+                updateDetailedStats(allRecords);
+                
             } catch (error) {
                 console.error('❌ 加载历史记录失败:', error);
                 tableBody.innerHTML = '';
@@ -2584,28 +2608,27 @@
             statsChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['水位上升', '水位下降', '盘口上升', '盘口下降', '水位<0.90'],
-                    datasets: [{
-                        label: '胜率 (%)',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: [
-                            'rgba(40, 167, 69, 0.7)',
-                            'rgba(220, 53, 69, 0.7)',
-                            'rgba(0, 123, 255, 0.7)',
-                            'rgba(255, 193, 7, 0.7)',
-                            'rgba(111, 66, 193, 0.7)'
-                        ],
-                        borderColor: [
-                            'rgb(40, 167, 69)',
-                            'rgb(220, 53, 69)',
-                            'rgb(0, 123, 255)',
-                            'rgb(255, 193, 7)',
-                            'rgb(111, 66, 193)'
-                        ],
-                        borderWidth: 1,
-                        barPercentage: isMobile ? 0.6 : 0.8,
-                        categoryPercentage: isMobile ? 0.7 : 0.9
-                    }]
+                    labels: ['水位上升', '水位下降', '盘口上升', '盘口下降', '即时水位<0.90'],
+                    datasets: [
+                        {
+                            label: '让球盘胜率 (%)',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(30, 60, 114, 0.7)',
+                            borderColor: 'rgb(30, 60, 114)',
+                            borderWidth: 1,
+                            barPercentage: isMobile ? 0.6 : 0.8,
+                            categoryPercentage: isMobile ? 0.7 : 0.9
+                        },
+                        {
+                            label: '大小盘胜率 (%)',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: 'rgba(42, 82, 152, 0.7)',
+                            borderColor: 'rgb(42, 82, 152)',
+                            borderWidth: 1,
+                            barPercentage: isMobile ? 0.6 : 0.8,
+                            categoryPercentage: isMobile ? 0.7 : 0.9
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -2649,12 +2672,21 @@
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: isMobile ? 11 : 13
+                                },
+                                padding: isMobile ? 10 : 15,
+                                boxWidth: 12,
+                                boxHeight: 12
+                            }
                         },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.label + ': ' + context.raw + '%';
+                                    return context.dataset.label + ': ' + context.raw + '%';
                                 }
                             },
                             titleFont: {
@@ -2667,7 +2699,7 @@
                         },
                         title: {
                             display: true,
-                            text: '胜率统计图表（包含让球盘和大小盘）',
+                            text: '让球盘与大小盘胜率对比分析',
                             font: {
                                 size: isMobile ? 14 : 16
                             },
@@ -2693,23 +2725,28 @@
             
             if (validRecords.length === 0) {
                 statsChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+                statsChart.data.datasets[1].data = [0, 0, 0, 0, 0];
                 statsChart.update();
                 return;
             }
             
-            // 计算统计
-            let waterUpTotal = 0;
-            let waterUpWins = 0;
-            let waterDownTotal = 0;
-            let waterDownWins = 0;
-            let handicapUpTotal = 0;
-            let handicapUpWins = 0;
-            let handicapDownTotal = 0;
-            let handicapDownWins = 0;
-            let lowWaterTotal = 0;
-            let lowWaterWins = 0;
+            // 分离让球盘和大小盘记录
+            const asianRecords = validRecords.filter(record => record.handicap_type === 'asian');
+            const sizeRecords = validRecords.filter(record => record.handicap_type === 'size');
+            
+            // 计算让球盘统计数据
+            let asianWaterUpTotal = 0;
+            let asianWaterUpWins = 0;
+            let asianWaterDownTotal = 0;
+            let asianWaterDownWins = 0;
+            let asianHandicapUpTotal = 0;
+            let asianHandicapUpWins = 0;
+            let asianHandicapDownTotal = 0;
+            let asianHandicapDownWins = 0;
+            let asianLowWaterTotal = 0;
+            let asianLowWaterWins = 0;
 
-            validRecords.forEach(record => {
+            asianRecords.forEach(record => {
                 const waterChange = parseFloat(record.water_change) || 0;
                 const handicapChange = parseFloat(record.handicap_change) || 0;
                 const currentWater = parseFloat(record.current_water) || 0;
@@ -2717,39 +2754,251 @@
 
                 // 水位变化统计
                 if (waterChange > 0) {
-                    waterUpTotal++;
-                    if (actualResult === 'win') waterUpWins++;
+                    asianWaterUpTotal++;
+                    if (actualResult === 'win') asianWaterUpWins++;
                 } else if (waterChange < 0) {
-                    waterDownTotal++;
-                    if (actualResult === 'win') waterDownWins++;
+                    asianWaterDownTotal++;
+                    if (actualResult === 'win') asianWaterDownWins++;
                 }
 
                 // 盘口变化统计
                 if (handicapChange > 0) {
-                    handicapUpTotal++;
-                    if (actualResult === 'win') handicapUpWins++;
+                    asianHandicapUpTotal++;
+                    if (actualResult === 'win') asianHandicapUpWins++;
                 } else if (handicapChange < 0) {
-                    handicapDownTotal++;
-                    if (actualResult === 'win') handicapDownWins++;
+                    asianHandicapDownTotal++;
+                    if (actualResult === 'win') asianHandicapDownWins++;
                 }
 
                 // 即时水位低于0.90的统计
                 if (currentWater < 0.90) {
-                    lowWaterTotal++;
-                    if (actualResult === 'win') lowWaterWins++;
+                    asianLowWaterTotal++;
+                    if (actualResult === 'win') asianLowWaterWins++;
+                }
+            });
+
+            // 计算大小盘统计数据
+            let sizeWaterUpTotal = 0;
+            let sizeWaterUpWins = 0;
+            let sizeWaterDownTotal = 0;
+            let sizeWaterDownWins = 0;
+            let sizeHandicapUpTotal = 0;
+            let sizeHandicapUpWins = 0;
+            let sizeHandicapDownTotal = 0;
+            let sizeHandicapDownWins = 0;
+            let sizeLowWaterTotal = 0;
+            let sizeLowWaterWins = 0;
+
+            sizeRecords.forEach(record => {
+                const waterChange = parseFloat(record.water_change) || 0;
+                const handicapChange = parseFloat(record.handicap_change) || 0;
+                const currentWater = parseFloat(record.current_water) || 0;
+                const actualResult = record.actual_result;
+
+                // 水位变化统计
+                if (waterChange > 0) {
+                    sizeWaterUpTotal++;
+                    if (actualResult === 'win') sizeWaterUpWins++;
+                } else if (waterChange < 0) {
+                    sizeWaterDownTotal++;
+                    if (actualResult === 'win') sizeWaterDownWins++;
+                }
+
+                // 盘口变化统计
+                if (handicapChange > 0) {
+                    sizeHandicapUpTotal++;
+                    if (actualResult === 'win') sizeHandicapUpWins++;
+                } else if (handicapChange < 0) {
+                    sizeHandicapDownTotal++;
+                    if (actualResult === 'win') sizeHandicapDownWins++;
+                }
+
+                // 即时水位低于0.90的统计
+                if (currentWater < 0.90) {
+                    sizeLowWaterTotal++;
+                    if (actualResult === 'win') sizeLowWaterWins++;
                 }
             });
 
             // 计算胜率
-            const waterUpWinRate = waterUpTotal > 0 ? Math.round((waterUpWins / waterUpTotal) * 100) : 0;
-            const waterDownWinRate = waterDownTotal > 0 ? Math.round((waterDownWins / waterDownTotal) * 100) : 0;
-            const handicapUpWinRate = handicapUpTotal > 0 ? Math.round((handicapUpWins / handicapUpTotal) * 100) : 0;
-            const handicapDownWinRate = handicapDownTotal > 0 ? Math.round((handicapDownWins / handicapDownTotal) * 100) : 0;
-            const lowWaterWinRate = lowWaterTotal > 0 ? Math.round((lowWaterWins / lowWaterTotal) * 100) : 0;
+            const asianWaterUpWinRate = asianWaterUpTotal > 0 ? Math.round((asianWaterUpWins / asianWaterUpTotal) * 100) : 0;
+            const asianWaterDownWinRate = asianWaterDownTotal > 0 ? Math.round((asianWaterDownWins / asianWaterDownTotal) * 100) : 0;
+            const asianHandicapUpWinRate = asianHandicapUpTotal > 0 ? Math.round((asianHandicapUpWins / asianHandicapUpTotal) * 100) : 0;
+            const asianHandicapDownWinRate = asianHandicapDownTotal > 0 ? Math.round((asianHandicapDownWins / asianHandicapDownTotal) * 100) : 0;
+            const asianLowWaterWinRate = asianLowWaterTotal > 0 ? Math.round((asianLowWaterWins / asianLowWaterTotal) * 100) : 0;
+
+            const sizeWaterUpWinRate = sizeWaterUpTotal > 0 ? Math.round((sizeWaterUpWins / sizeWaterUpTotal) * 100) : 0;
+            const sizeWaterDownWinRate = sizeWaterDownTotal > 0 ? Math.round((sizeWaterDownWins / sizeWaterDownTotal) * 100) : 0;
+            const sizeHandicapUpWinRate = sizeHandicapUpTotal > 0 ? Math.round((sizeHandicapUpWins / sizeHandicapUpTotal) * 100) : 0;
+            const sizeHandicapDownWinRate = sizeHandicapDownTotal > 0 ? Math.round((sizeHandicapDownWins / sizeHandicapDownTotal) * 100) : 0;
+            const sizeLowWaterWinRate = sizeLowWaterTotal > 0 ? Math.round((sizeLowWaterWins / sizeLowWaterTotal) * 100) : 0;
 
             // 更新图表
-            statsChart.data.datasets[0].data = [waterUpWinRate, waterDownWinRate, handicapUpWinRate, handicapDownWinRate, lowWaterWinRate];
+            statsChart.data.datasets[0].data = [
+                asianWaterUpWinRate, 
+                asianWaterDownWinRate, 
+                asianHandicapUpWinRate, 
+                asianHandicapDownWinRate, 
+                asianLowWaterWinRate
+            ];
+            
+            statsChart.data.datasets[1].data = [
+                sizeWaterUpWinRate, 
+                sizeWaterDownWinRate, 
+                sizeHandicapUpWinRate, 
+                sizeHandicapDownWinRate, 
+                sizeLowWaterWinRate
+            ];
+            
+            // 更新图表标题，显示记录总数
+            const asianCount = asianRecords.length;
+            const sizeCount = sizeRecords.length;
+            const totalCount = validRecords.length;
+            
+            statsChart.options.plugins.title.text = `让球盘与大小盘胜率对比分析 (共${totalCount}条有效记录)`;
+            
             statsChart.update();
+        }
+
+        // ============== 详细统计信息显示 ============== //
+        function updateDetailedStats(records) {
+            // 只统计有实际结果的记录
+            const validRecords = records.filter(record => record.actual_result);
+            
+            if (validRecords.length === 0) {
+                document.getElementById('detailed-stats').style.display = 'none';
+                return;
+            }
+            
+            // 显示详细统计区域
+            document.getElementById('detailed-stats').style.display = 'block';
+            
+            // 分离让球盘和大小盘记录
+            const asianRecords = validRecords.filter(record => record.handicap_type === 'asian');
+            const sizeRecords = validRecords.filter(record => record.handicap_type === 'size');
+            
+            // 计算让球盘详细统计数据
+            let asianWaterUpTotal = 0;
+            let asianWaterUpWins = 0;
+            let asianWaterDownTotal = 0;
+            let asianWaterDownWins = 0;
+            let asianHandicapUpTotal = 0;
+            let asianHandicapUpWins = 0;
+            let asianHandicapDownTotal = 0;
+            let asianHandicapDownWins = 0;
+            let asianLowWaterTotal = 0;
+            let asianLowWaterWins = 0;
+
+            asianRecords.forEach(record => {
+                const waterChange = parseFloat(record.water_change) || 0;
+                const handicapChange = parseFloat(record.handicap_change) || 0;
+                const currentWater = parseFloat(record.current_water) || 0;
+                const actualResult = record.actual_result;
+
+                // 水位变化统计
+                if (waterChange > 0) {
+                    asianWaterUpTotal++;
+                    if (actualResult === 'win') asianWaterUpWins++;
+                } else if (waterChange < 0) {
+                    asianWaterDownTotal++;
+                    if (actualResult === 'win') asianWaterDownWins++;
+                }
+
+                // 盘口变化统计
+                if (handicapChange > 0) {
+                    asianHandicapUpTotal++;
+                    if (actualResult === 'win') asianHandicapUpWins++;
+                } else if (handicapChange < 0) {
+                    asianHandicapDownTotal++;
+                    if (actualResult === 'win') asianHandicapDownWins++;
+                }
+
+                // 即时水位低于0.90的统计
+                if (currentWater < 0.90) {
+                    asianLowWaterTotal++;
+                    if (actualResult === 'win') asianLowWaterWins++;
+                }
+            });
+
+            // 计算大小盘详细统计数据
+            let sizeWaterUpTotal = 0;
+            let sizeWaterUpWins = 0;
+            let sizeWaterDownTotal = 0;
+            let sizeWaterDownWins = 0;
+            let sizeHandicapUpTotal = 0;
+            let sizeHandicapUpWins = 0;
+            let sizeHandicapDownTotal = 0;
+            let sizeHandicapDownWins = 0;
+            let sizeLowWaterTotal = 0;
+            let sizeLowWaterWins = 0;
+
+            sizeRecords.forEach(record => {
+                const waterChange = parseFloat(record.water_change) || 0;
+                const handicapChange = parseFloat(record.handicap_change) || 0;
+                const currentWater = parseFloat(record.current_water) || 0;
+                const actualResult = record.actual_result;
+
+                // 水位变化统计
+                if (waterChange > 0) {
+                    sizeWaterUpTotal++;
+                    if (actualResult === 'win') sizeWaterUpWins++;
+                } else if (waterChange < 0) {
+                    sizeWaterDownTotal++;
+                    if (actualResult === 'win') sizeWaterDownWins++;
+                }
+
+                // 盘口变化统计
+                if (handicapChange > 0) {
+                    sizeHandicapUpTotal++;
+                    if (actualResult === 'win') sizeHandicapUpWins++;
+                } else if (handicapChange < 0) {
+                    sizeHandicapDownTotal++;
+                    if (actualResult === 'win') sizeHandicapDownWins++;
+                }
+
+                // 即时水位低于0.90的统计
+                if (currentWater < 0.90) {
+                    sizeLowWaterTotal++;
+                    if (actualResult === 'win') sizeLowWaterWins++;
+                }
+            });
+
+            // 计算胜率
+            const asianWaterUpWinRate = asianWaterUpTotal > 0 ? Math.round((asianWaterUpWins / asianWaterUpTotal) * 100) : 0;
+            const asianWaterDownWinRate = asianWaterDownTotal > 0 ? Math.round((asianWaterDownWins / asianWaterDownTotal) * 100) : 0;
+            const asianHandicapUpWinRate = asianHandicapUpTotal > 0 ? Math.round((asianHandicapUpWins / asianHandicapUpTotal) * 100) : 0;
+            const asianHandicapDownWinRate = asianHandicapDownTotal > 0 ? Math.round((asianHandicapDownWins / asianHandicapDownTotal) * 100) : 0;
+            const asianLowWaterWinRate = asianLowWaterTotal > 0 ? Math.round((asianLowWaterWins / asianLowWaterTotal) * 100) : 0;
+
+            const sizeWaterUpWinRate = sizeWaterUpTotal > 0 ? Math.round((sizeWaterUpWins / sizeWaterUpTotal) * 100) : 0;
+            const sizeWaterDownWinRate = sizeWaterDownTotal > 0 ? Math.round((sizeWaterDownWins / sizeWaterDownTotal) * 100) : 0;
+            const sizeHandicapUpWinRate = sizeHandicapUpTotal > 0 ? Math.round((sizeHandicapUpWins / sizeHandicapUpTotal) * 100) : 0;
+            const sizeHandicapDownWinRate = sizeHandicapDownTotal > 0 ? Math.round((sizeHandicapDownWins / sizeHandicapDownTotal) * 100) : 0;
+            const sizeLowWaterWinRate = sizeLowWaterTotal > 0 ? Math.round((sizeLowWaterWins / sizeLowWaterTotal) * 100) : 0;
+
+            // 更新让球盘详细统计信息
+            const asianStatsHTML = `
+                <div><strong>总记录数:</strong> ${asianRecords.length}</div>
+                <div><strong>水位上升:</strong> ${asianWaterUpWins}/${asianWaterUpTotal} (${asianWaterUpWinRate}%)</div>
+                <div><strong>水位下降:</strong> ${asianWaterDownWins}/${asianWaterDownTotal} (${asianWaterDownWinRate}%)</div>
+                <div><strong>盘口上升:</strong> ${asianHandicapUpWins}/${asianHandicapUpTotal} (${asianHandicapUpWinRate}%)</div>
+                <div><strong>盘口下降:</strong> ${asianHandicapDownWins}/${asianHandicapDownTotal} (${asianHandicapDownWinRate}%)</div>
+                <div><strong>水位&lt;0.90:</strong> ${asianLowWaterWins}/${asianLowWaterTotal} (${asianLowWaterWinRate}%)</div>
+            `;
+            
+            document.getElementById('asian-stats-details').innerHTML = asianStatsHTML;
+            
+            // 更新大小盘详细统计信息
+            const sizeStatsHTML = `
+                <div><strong>总记录数:</strong> ${sizeRecords.length}</div>
+                <div><strong>水位上升:</strong> ${sizeWaterUpWins}/${sizeWaterUpTotal} (${sizeWaterUpWinRate}%)</div>
+                <div><strong>水位下降:</strong> ${sizeWaterDownWins}/${sizeWaterDownTotal} (${sizeWaterDownWinRate}%)</div>
+                <div><strong>盘口上升:</strong> ${sizeHandicapUpWins}/${sizeHandicapUpTotal} (${sizeHandicapUpWinRate}%)</div>
+                <div><strong>盘口下降:</strong> ${sizeHandicapDownWins}/${sizeHandicapDownTotal} (${sizeHandicapDownWinRate}%)</div>
+                <div><strong>水位&lt;0.90:</strong> ${sizeLowWaterWins}/${sizeLowWaterTotal} (${sizeLowWaterWinRate}%)</div>
+            `;
+            
+            document.getElementById('size-stats-details').innerHTML = sizeStatsHTML;
         }
 
         // ============== 其他功能函数 ============== //
@@ -2926,4 +3175,3 @@
     </script>
 </body>
 </html>
-
