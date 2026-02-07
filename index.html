@@ -355,77 +355,7 @@
             height: 280px;
             margin-top: 15px;
         }
-/* 胜率显示样式 */
-.win-rate-display {
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-}
 
-.win-rate-display.show {
-    display: block !important;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.win-rate-progress {
-    height: 6px;
-    background-color: #e9ecef;
-    border-radius: 3px;
-    margin-top: 6px;
-    overflow: hidden;
-}
-
-.win-rate-progress-bar {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s ease;
-}
-
-.win-rate-progress-bar.high {
-    background: linear-gradient(90deg, #28a745, #20c997);
-}
-
-.win-rate-progress-bar.medium {
-    background: linear-gradient(90deg, #ffc107, #fd7e14);
-}
-
-.win-rate-progress-bar.low {
-    background: linear-gradient(90deg, #dc3545, #e83e8c);
-}
-
-.win-rate-confidence {
-    font-size: 10px;
-    margin-top: 3px;
-    text-align: right;
-    color: #6c757d;
-}
-
-.win-rate-trend {
-    font-size: 11px;
-    margin-top: 4px;
-    padding: 3px 6px;
-    border-radius: 10px;
-    display: inline-block;
-}
-
-.win-rate-trend.up {
-    background-color: rgba(40, 167, 69, 0.1);
-    color: #28a745;
-}
-
-.win-rate-trend.down {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-}
-
-.win-rate-trend.neutral {
-    background-color: rgba(108, 117, 125, 0.1);
-    color: #6c757d;
-}
         /* 历史记录区域 */
         .history-controls {
             display: flex;
@@ -2039,246 +1969,315 @@
         }
 
         // ============== 自动计算推荐结果 ============== //
-        async function autoCalculateAsianRecommendation() {
-            const initialHandicap = parseFloat(document.getElementById('asian-initial-handicap').value);
-            const currentHandicap = parseFloat(document.getElementById('asian-current-handicap').value);
-            const initialWater = parseFloat(document.getElementById('asian-initial-water').value);
-            const currentWater = parseFloat(document.getElementById('asian-current-water').value);
-            const historicalRecord = document.getElementById('asian-historical-record').value;
-            const matchName = document.getElementById('asian-match-name').value.trim();
+// ============== 修改autoCalculateAsianRecommendation函数 ============== //
+async function autoCalculateAsianRecommendation() {
+    const initialHandicap = parseFloat(document.getElementById('asian-initial-handicap').value);
+    const currentHandicap = parseFloat(document.getElementById('asian-current-handicap').value);
+    const initialWater = parseFloat(document.getElementById('asian-initial-water').value);
+    const currentWater = parseFloat(document.getElementById('asian-current-water').value);
+    const historicalRecord = document.getElementById('asian-historical-record').value;
+    const matchName = document.getElementById('asian-match-name').value.trim();
 
-            // 如果所有字段都有值，则计算推荐结果
-            if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
-                !isNaN(initialWater) && !isNaN(currentWater) &&
-                historicalRecord && matchName) {
-                
-                try {
-                    // 准备请求数据
-                    const requestData = {
-                        matchName,
-                        initialHandicap,
-                        currentHandicap,
-                        initialWater,
-                        currentWater,
-                        historicalRecord,
-                        timestamp: new Date().toISOString()
-                    };
+    // 如果所有字段都有值，则计算推荐结果
+    if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
+        !isNaN(initialWater) && !isNaN(currentWater) &&
+        historicalRecord && matchName) {
+        
+        try {
+            // 准备请求数据
+            const requestData = {
+                matchName,
+                initialHandicap,
+                currentHandicap,
+                initialWater,
+                currentWater,
+                historicalRecord,
+                timestamp: new Date().toISOString()
+            };
 
-                    // 调用服务器API获取推荐
-                    const result = await APIService.getAsianRecommendation(requestData);
-                    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            // 调用服务器API获取推荐
+            const result = await APIService.getAsianRecommendation(requestData);
             
-            if (currentUser && token) {
-                try {
-                    // 1. 获取平均胜率
-                    const avgWinRateResponse = await APIService.request(
-                        `/api/stats/average-win-rate/asian`, 
-                        'GET', 
-                        null, 
-                        true
-                    );
-                    
-                    if (avgWinRateResponse.success) {
-                        console.log('平均胜率:', avgWinRateResponse.stats.average_win_rate);
-                        
-                        // 可以在推荐详情中显示平均胜率
-                        const avgWinRate = document.getElementById('asian-recommendation-details');
-                        const avgText = avgWinRate.textContent;
-                        avgWinRate.textContent = avgText + ` | 历史平均胜率: ${(avgWinRateResponse.stats.average_win_rate * 100).toFixed(1)}%`;
-                    }
-                    
-                    // 2. 获取实时胜率
-                    const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
-                    const waterChange = (currentWater - initialWater).toFixed(2);
-                    
-                    const realtimeWinRateResponse = await APIService.request(
-                        `/api/stats/current-win-rate`,
-                        'POST',
-                        {
-                            handicap_type: 'asian',
-                            water_change: parseFloat(waterChange),
-                            handicap_change: parseFloat(handicapChange),
-                            historical_record: historicalRecord
-                        },
-                        true
-                    );
-                    
-                    if (realtimeWinRateResponse.success) {
-                        console.log('实时胜率:', realtimeWinRateResponse.win_rate);
-                        
-                        // 在推荐结果中显示实时胜率
-                        const resultElement = document.getElementById('asian-recommendation-result');
-                        const originalText = resultElement.textContent;
-                        const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
-                        resultElement.textContent = `${originalText} (胜率: ${winRatePercent}%)`;
-                        
-                        // 也可以在详情中显示
-                        const detailsElement = document.getElementById('asian-recommendation-details');
-                        const detailsText = detailsElement.textContent;
-                        detailsElement.textContent = detailsText + ` | 实时胜率: ${winRatePercent}%`;
-                    }
-                    
-                } catch (error) {
-                    console.warn('获取胜率统计失败:', error);
-                    // 不影响主要功能，继续执行
-                }
-            }
-            // ============== 新增代码结束 ============== //
-                    // 更新界面
-                    if (result.success) {
-                        const recommendation = result.recommendation;
-                        const resultElement = document.getElementById('asian-recommendation-result');
-                        resultElement.textContent = recommendation;
-                        
-                        if (recommendation === "上盘") {
-                            resultElement.className = "recommendation-result recommendation-up";
-                        } else if (recommendation === "下盘") {
-                            resultElement.className = "recommendation-result recommendation-down";
-                        } else {
-                            resultElement.className = "recommendation-result recommendation-neutral";
-                        }
-
-                        // 显示详细信息
-                        document.getElementById('asian-recommendation-details').textContent = result.details || '';
-                    }
-                    
-                } catch (error) {
-                    // 显示错误
-                    const resultElement = document.getElementById('asian-recommendation-result');
-                    resultElement.textContent = "计算失败";
-                    resultElement.className = "recommendation-result recommendation-neutral";
-                    document.getElementById('asian-recommendation-details').textContent = "请检查网络连接后重试";
-                }
-            } else {
-                // 否则显示等待输入
+            // 更新界面
+            if (result.success) {
+                const recommendation = result.recommendation;
                 const resultElement = document.getElementById('asian-recommendation-result');
-                resultElement.textContent = "等待输入";
-                resultElement.className = "recommendation-result recommendation-neutral";
-                document.getElementById('asian-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
-            }
-        }
-
-        async function autoCalculateSizeRecommendation() {
-            const initialHandicap = parseFloat(document.getElementById('size-initial-handicap').value);
-            const currentHandicap = parseFloat(document.getElementById('size-current-handicap').value);
-            const initialWater = parseFloat(document.getElementById('size-initial-water').value);
-            const currentWater = parseFloat(document.getElementById('size-current-water').value);
-            const historicalRecord = document.getElementById('size-historical-record').value;
-            const matchName = document.getElementById('size-match-name').value.trim();
-
-            // 如果所有字段都有值，则计算推荐结果
-            if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
-                !isNaN(initialWater) && !isNaN(currentWater) &&
-                historicalRecord && matchName) {
                 
-                try {
-                    // 准备请求数据
-                    const requestData = {
-                        matchName,
-                        initialHandicap,
-                        currentHandicap,
-                        initialWater,
-                        currentWater,
-                        historicalRecord,
-                        timestamp: new Date().toISOString()
-                    };
-
-                    // 调用服务器API获取推荐
-                    const result = await APIService.getSizeRecommendation(requestData);
-                    // ... 现有的推荐API调用代码 ...
-            
-            // ============== 新增：获取胜率统计 ============== //
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-            
-            if (currentUser && token) {
-                try {
-                    // 1. 获取平均胜率
-                    const avgWinRateResponse = await APIService.request(
-                        `/api/stats/average-win-rate/size`, 
-                        'GET', 
-                        null, 
-                        true
-                    );
-                    
-                    if (avgWinRateResponse.success) {
-                        console.log('大小盘平均胜率:', avgWinRateResponse.stats.average_win_rate);
-                        
-                        const avgWinRate = document.getElementById('size-recommendation-details');
-                        const avgText = avgWinRate.textContent;
-                        avgWinRate.textContent = avgText + ` | 历史平均胜率: ${(avgWinRateResponse.stats.average_win_rate * 100).toFixed(1)}%`;
-                    }
-                    
-                    // 2. 获取实时胜率
-                    const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
-                    const waterChange = (currentWater - initialWater).toFixed(2);
-                    
-                    const realtimeWinRateResponse = await APIService.request(
-                        `/api/stats/current-win-rate`,
-                        'POST',
-                        {
-                            handicap_type: 'size',
-                            water_change: parseFloat(waterChange),
-                            handicap_change: parseFloat(handicapChange),
-                            historical_record: historicalRecord
-                        },
-                        true
-                    );
-                    
-                    if (realtimeWinRateResponse.success) {
-                        console.log('大小盘实时胜率:', realtimeWinRateResponse.win_rate);
-                        
-                        const resultElement = document.getElementById('size-recommendation-result');
-                        const originalText = resultElement.textContent;
-                        const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
-                        resultElement.textContent = `${originalText} (胜率: ${winRatePercent}%)`;
-                        
-                        const detailsElement = document.getElementById('size-recommendation-details');
-                        const detailsText = detailsElement.textContent;
-                        detailsElement.textContent = detailsText + ` | 实时胜率: ${winRatePercent}%`;
-                    }
-                    
-                } catch (error) {
-                    console.warn('获取大小盘胜率统计失败:', error);
+                // 清除可能存在的胜率文本
+                const cleanRecommendation = recommendation.replace(/\s*\(胜率:.*?\%\)/, '');
+                resultElement.textContent = cleanRecommendation;
+                
+                if (recommendation === "上盘") {
+                    resultElement.className = "recommendation-result recommendation-up";
+                } else if (recommendation === "下盘") {
+                    resultElement.className = "recommendation-result recommendation-down";
+                } else {
+                    resultElement.className = "recommendation-result recommendation-neutral";
                 }
-            }
-            // ============== 新增代码结束 ============== //
-                    // 更新界面
-                    if (result.success) {
-                        const recommendation = result.recommendation;
-                        const resultElement = document.getElementById('size-recommendation-result');
-                        resultElement.textContent = recommendation;
+
+                // 显示详细信息
+                const detailsElement = document.getElementById('asian-recommendation-details');
+                detailsElement.textContent = result.details || '';
+                
+                // ============== 新增：获取胜率统计 ============== //
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                if (currentUser && token) {
+                    try {
+                        // 显示胜率显示区域
+                        const winRateDisplay = document.getElementById('asian-win-rate-display');
+                        winRateDisplay.style.display = 'block';
                         
-                        if (recommendation === "大球") {
-                            resultElement.className = "recommendation-result size-recommendation-up";
-                        } else if (recommendation === "小球") {
-                            resultElement.className = "recommendation-result size-recommendation-down";
+                        // 1. 获取平均胜率
+                        const avgWinRateResponse = await APIService.request(
+                            `/api/stats/average-win-rate/asian`, 
+                            'GET', 
+                            null, 
+                            true
+                        );
+                        
+                        if (avgWinRateResponse.success) {
+                            const avgWinRate = (avgWinRateResponse.stats.average_win_rate * 100).toFixed(1);
+                            document.getElementById('asian-avg-win-rate-value').textContent = `${avgWinRate}%`;
                         } else {
-                            resultElement.className = "recommendation-result size-recommendation-neutral";
+                            document.getElementById('asian-avg-win-rate-value').textContent = '--';
                         }
-
-                        // 显示详细信息
-                        document.getElementById('size-recommendation-details').textContent = result.details || '';
+                        
+                        // 2. 获取实时胜率
+                        const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+                        const waterChange = (currentWater - initialWater).toFixed(2);
+                        
+                        const realtimeWinRateResponse = await APIService.request(
+                            `/api/stats/current-win-rate`,
+                            'POST',
+                            {
+                                handicap_type: 'asian',
+                                water_change: parseFloat(waterChange),
+                                handicap_change: parseFloat(handicapChange),
+                                historical_record: historicalRecord
+                            },
+                            true
+                        );
+                        
+                        if (realtimeWinRateResponse.success) {
+                            const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
+                            document.getElementById('asian-realtime-win-rate-value').textContent = `${winRatePercent}%`;
+                            
+                            // 在推荐结果旁边添加胜率提示（可选）
+                            resultElement.textContent = `${cleanRecommendation} (胜率: ${winRatePercent}%)`;
+                        } else {
+                            document.getElementById('asian-realtime-win-rate-value').textContent = '--';
+                        }
+                        
+                        // 显示详细说明
+                        document.getElementById('asian-win-rate-details').style.display = 'block';
+                        
+                    } catch (error) {
+                        console.warn('获取胜率统计失败:', error);
+                        // 隐藏胜率显示区域
+                        document.getElementById('asian-win-rate-display').style.display = 'none';
                     }
-                    
-                } catch (error) {
-                    // 显示错误
-                    const resultElement = document.getElementById('size-recommendation-result');
-                    resultElement.textContent = "计算失败";
-                    resultElement.className = "recommendation-result size-recommendation-neutral";
-                    document.getElementById('size-recommendation-details').textContent = "请检查网络连接后重试";
+                } else {
+                    // 未登录，隐藏胜率显示区域
+                    document.getElementById('asian-win-rate-display').style.display = 'none';
                 }
-            } else {
-                // 否则显示等待输入
-                const resultElement = document.getElementById('size-recommendation-result');
-                resultElement.textContent = "等待输入";
-                resultElement.className = "recommendation-result size-recommendation-neutral";
-                document.getElementById('size-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
+                // ============== 新增代码结束 ============== //
+                
             }
+            
+        } catch (error) {
+            // 显示错误
+            const resultElement = document.getElementById('asian-recommendation-result');
+            resultElement.textContent = "计算失败";
+            resultElement.className = "recommendation-result recommendation-neutral";
+            document.getElementById('asian-recommendation-details').textContent = "请检查网络连接后重试";
+            
+            // 隐藏胜率显示区域
+            document.getElementById('asian-win-rate-display').style.display = 'none';
         }
+    } else {
+        // 否则显示等待输入
+        const resultElement = document.getElementById('asian-recommendation-result');
+        resultElement.textContent = "等待输入";
+        resultElement.className = "recommendation-result recommendation-neutral";
+        document.getElementById('asian-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
+        
+        // 隐藏胜率显示区域
+        document.getElementById('asian-win-rate-display').style.display = 'none';
+    }
+}
 
-        // ============== 保存记录功能 ============== //
+// ============== 修改autoCalculateSizeRecommendation函数（类似修改） ============== //
+async function autoCalculateSizeRecommendation() {
+    const initialHandicap = parseFloat(document.getElementById('size-initial-handicap').value);
+    const currentHandicap = parseFloat(document.getElementById('size-current-handicap').value);
+    const initialWater = parseFloat(document.getElementById('size-initial-water').value);
+    const currentWater = parseFloat(document.getElementById('size-current-water').value);
+    const historicalRecord = document.getElementById('size-historical-record').value;
+    const matchName = document.getElementById('size-match-name').value.trim();
+
+    // 如果所有字段都有值，则计算推荐结果
+    if (!isNaN(initialHandicap) && !isNaN(currentHandicap) &&
+        !isNaN(initialWater) && !isNaN(currentWater) &&
+        historicalRecord && matchName) {
+        
+        try {
+            // 准备请求数据
+            const requestData = {
+                matchName,
+                initialHandicap,
+                currentHandicap,
+                initialWater,
+                currentWater,
+                historicalRecord,
+                timestamp: new Date().toISOString()
+            };
+
+            // 调用服务器API获取推荐
+            const result = await APIService.getSizeRecommendation(requestData);
+            
+            // 更新界面
+            if (result.success) {
+                const recommendation = result.recommendation;
+                const resultElement = document.getElementById('size-recommendation-result');
+                
+                // 清除可能存在的胜率文本
+                const cleanRecommendation = recommendation.replace(/\s*\(胜率:.*?\%\)/, '');
+                resultElement.textContent = cleanRecommendation;
+                
+                if (recommendation === "大球") {
+                    resultElement.className = "recommendation-result size-recommendation-up";
+                } else if (recommendation === "小球") {
+                    resultElement.className = "recommendation-result size-recommendation-down";
+                } else {
+                    resultElement.className = "recommendation-result size-recommendation-neutral";
+                }
+
+                // 显示详细信息
+                const detailsElement = document.getElementById('size-recommendation-details');
+                detailsElement.textContent = result.details || '';
+                
+                // ============== 新增：获取胜率统计 ============== //
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                
+                if (currentUser && token) {
+                    try {
+                        // 显示胜率显示区域
+                        const winRateDisplay = document.getElementById('size-win-rate-display');
+                        winRateDisplay.style.display = 'block';
+                        
+                        // 1. 获取平均胜率
+                        const avgWinRateResponse = await APIService.request(
+                            `/api/stats/average-win-rate/size`, 
+                            'GET', 
+                            null, 
+                            true
+                        );
+                        
+                        if (avgWinRateResponse.success) {
+                            const avgWinRate = (avgWinRateResponse.stats.average_win_rate * 100).toFixed(1);
+                            document.getElementById('size-avg-win-rate-value').textContent = `${avgWinRate}%`;
+                        } else {
+                            document.getElementById('size-avg-win-rate-value').textContent = '--';
+                        }
+                        
+                        // 2. 获取实时胜率
+                        const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+                        const waterChange = (currentWater - initialWater).toFixed(2);
+                        
+                        const realtimeWinRateResponse = await APIService.request(
+                            `/api/stats/current-win-rate`,
+                            'POST',
+                            {
+                                handicap_type: 'size',
+                                water_change: parseFloat(waterChange),
+                                handicap_change: parseFloat(handicapChange),
+                                historical_record: historicalRecord
+                            },
+                            true
+                        );
+                        
+                        if (realtimeWinRateResponse.success) {
+                            const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
+                            document.getElementById('size-realtime-win-rate-value').textContent = `${winRatePercent}%`;
+                            
+                            // 在推荐结果旁边添加胜率提示（可选）
+                            resultElement.textContent = `${cleanRecommendation} (胜率: ${winRatePercent}%)`;
+                        } else {
+                            document.getElementById('size-realtime-win-rate-value').textContent = '--';
+                        }
+                        
+                        // 显示详细说明
+                        document.getElementById('size-win-rate-details').style.display = 'block';
+                        
+                    } catch (error) {
+                        console.warn('获取胜率统计失败:', error);
+                        // 隐藏胜率显示区域
+                        document.getElementById('size-win-rate-display').style.display = 'none';
+                    }
+                } else {
+                    // 未登录，隐藏胜率显示区域
+                    document.getElementById('size-win-rate-display').style.display = 'none';
+                }
+                // ============== 新增代码结束 ============== //
+                
+            }
+            
+        } catch (error) {
+            // 显示错误
+            const resultElement = document.getElementById('size-recommendation-result');
+            resultElement.textContent = "计算失败";
+            resultElement.className = "recommendation-result size-recommendation-neutral";
+            document.getElementById('size-recommendation-details').textContent = "请检查网络连接后重试";
+            
+            // 隐藏胜率显示区域
+            document.getElementById('size-win-rate-display').style.display = 'none';
+        }
+    } else {
+        // 否则显示等待输入
+        const resultElement = document.getElementById('size-recommendation-result');
+        resultElement.textContent = "等待输入";
+        resultElement.className = "recommendation-result size-recommendation-neutral";
+        document.getElementById('size-recommendation-details').textContent = "请填写所有字段以获取推荐结果";
+        
+        // 隐藏胜率显示区域
+        document.getElementById('size-win-rate-display').style.display = 'none';
+    }
+}
+
+// ============== 修改resetAsianForm函数 ============== //
+function resetAsianForm() {
+    document.getElementById('asian-match-name').value = '';
+    document.getElementById('asian-initial-handicap').value = '';
+    document.getElementById('asian-current-handicap').value = '';
+    document.getElementById('asian-initial-water').value = '';
+    document.getElementById('asian-current-water').value = '';
+    document.getElementById('asian-historical-record').value = '';
+    document.getElementById('asian-recommendation-result').textContent = '等待输入';
+    document.getElementById('asian-recommendation-result').className = 'recommendation-result recommendation-neutral';
+    document.getElementById('asian-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
+    
+    // 隐藏胜率显示区域
+    document.getElementById('asian-win-rate-display').style.display = 'none';
+}
+
+// ============== 修改resetSizeForm函数 ============== //
+function resetSizeForm() {
+    document.getElementById('size-match-name').value = '';
+    document.getElementById('size-initial-handicap').value = '';
+    document.getElementById('size-current-handicap').value = '';
+    document.getElementById('size-initial-water').value = '';
+    document.getElementById('size-current-water').value = '';
+    document.getElementById('size-historical-record').value = '';
+    document.getElementById('size-recommendation-result').textContent = '等待输入';
+    document.getElementById('size-recommendation-result').className = 'recommendation-result size-recommendation-neutral';
+    document.getElementById('size-recommendation-details').textContent = '请填写所有字段以获取推荐结果';
+    
+    // 隐藏胜率显示区域
+    document.getElementById('size-win-rate-display').style.display = 'none';
+} // ============== 保存记录功能 ============== //
         async function saveAsianRecord() {
             console.log('💾 开始保存让球盘记录...');
             
