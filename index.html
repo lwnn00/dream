@@ -1945,7 +1945,65 @@
 
                     // 调用服务器API获取推荐
                     const result = await APIService.getAsianRecommendation(requestData);
+                    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            
+            if (currentUser && token) {
+                try {
+                    // 1. 获取平均胜率
+                    const avgWinRateResponse = await APIService.request(
+                        `/api/stats/average-win-rate/asian`, 
+                        'GET', 
+                        null, 
+                        true
+                    );
                     
+                    if (avgWinRateResponse.success) {
+                        console.log('平均胜率:', avgWinRateResponse.stats.average_win_rate);
+                        
+                        // 可以在推荐详情中显示平均胜率
+                        const avgWinRate = document.getElementById('asian-recommendation-details');
+                        const avgText = avgWinRate.textContent;
+                        avgWinRate.textContent = avgText + ` | 历史平均胜率: ${(avgWinRateResponse.stats.average_win_rate * 100).toFixed(1)}%`;
+                    }
+                    
+                    // 2. 获取实时胜率
+                    const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+                    const waterChange = (currentWater - initialWater).toFixed(2);
+                    
+                    const realtimeWinRateResponse = await APIService.request(
+                        `/api/stats/current-win-rate`,
+                        'POST',
+                        {
+                            handicap_type: 'asian',
+                            water_change: parseFloat(waterChange),
+                            handicap_change: parseFloat(handicapChange),
+                            historical_record: historicalRecord
+                        },
+                        true
+                    );
+                    
+                    if (realtimeWinRateResponse.success) {
+                        console.log('实时胜率:', realtimeWinRateResponse.win_rate);
+                        
+                        // 在推荐结果中显示实时胜率
+                        const resultElement = document.getElementById('asian-recommendation-result');
+                        const originalText = resultElement.textContent;
+                        const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
+                        resultElement.textContent = `${originalText} (胜率: ${winRatePercent}%)`;
+                        
+                        // 也可以在详情中显示
+                        const detailsElement = document.getElementById('asian-recommendation-details');
+                        const detailsText = detailsElement.textContent;
+                        detailsElement.textContent = detailsText + ` | 实时胜率: ${winRatePercent}%`;
+                    }
+                    
+                } catch (error) {
+                    console.warn('获取胜率统计失败:', error);
+                    // 不影响主要功能，继续执行
+                }
+            }
+            // ============== 新增代码结束 ============== //
                     // 更新界面
                     if (result.success) {
                         const recommendation = result.recommendation;
@@ -2007,7 +2065,64 @@
 
                     // 调用服务器API获取推荐
                     const result = await APIService.getSizeRecommendation(requestData);
+                    // ... 现有的推荐API调用代码 ...
+            
+            // ============== 新增：获取胜率统计 ============== //
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            
+            if (currentUser && token) {
+                try {
+                    // 1. 获取平均胜率
+                    const avgWinRateResponse = await APIService.request(
+                        `/api/stats/average-win-rate/size`, 
+                        'GET', 
+                        null, 
+                        true
+                    );
                     
+                    if (avgWinRateResponse.success) {
+                        console.log('大小盘平均胜率:', avgWinRateResponse.stats.average_win_rate);
+                        
+                        const avgWinRate = document.getElementById('size-recommendation-details');
+                        const avgText = avgWinRate.textContent;
+                        avgWinRate.textContent = avgText + ` | 历史平均胜率: ${(avgWinRateResponse.stats.average_win_rate * 100).toFixed(1)}%`;
+                    }
+                    
+                    // 2. 获取实时胜率
+                    const handicapChange = (currentHandicap - initialHandicap).toFixed(2);
+                    const waterChange = (currentWater - initialWater).toFixed(2);
+                    
+                    const realtimeWinRateResponse = await APIService.request(
+                        `/api/stats/current-win-rate`,
+                        'POST',
+                        {
+                            handicap_type: 'size',
+                            water_change: parseFloat(waterChange),
+                            handicap_change: parseFloat(handicapChange),
+                            historical_record: historicalRecord
+                        },
+                        true
+                    );
+                    
+                    if (realtimeWinRateResponse.success) {
+                        console.log('大小盘实时胜率:', realtimeWinRateResponse.win_rate);
+                        
+                        const resultElement = document.getElementById('size-recommendation-result');
+                        const originalText = resultElement.textContent;
+                        const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
+                        resultElement.textContent = `${originalText} (胜率: ${winRatePercent}%)`;
+                        
+                        const detailsElement = document.getElementById('size-recommendation-details');
+                        const detailsText = detailsElement.textContent;
+                        detailsElement.textContent = detailsText + ` | 实时胜率: ${winRatePercent}%`;
+                    }
+                    
+                } catch (error) {
+                    console.warn('获取大小盘胜率统计失败:', error);
+                }
+            }
+            // ============== 新增代码结束 ============== //
                     // 更新界面
                     if (result.success) {
                         const recommendation = result.recommendation;
@@ -3164,7 +3279,41 @@
 
             // 第七步：初始化事件监听器
             initEventListeners();
-
+// ============== 新增：获取平均胜率 ============== //
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    
+    if (currentUser && token) {
+        try {
+            // 获取让球盘平均胜率
+            const asianAvgResponse = await APIService.request(
+                `/api/stats/average-win-rate/asian`, 
+                'GET', 
+                null, 
+                true
+            );
+            
+            if (asianAvgResponse.success) {
+                console.log('让球盘历史平均胜率:', asianAvgResponse.stats.average_win_rate);
+            }
+            
+            // 获取大小盘平均胜率
+            const sizeAvgResponse = await APIService.request(
+                `/api/stats/average-win-rate/size`, 
+                'GET', 
+                null, 
+                true
+            );
+            
+            if (sizeAvgResponse.success) {
+                console.log('大小盘历史平均胜率:', sizeAvgResponse.stats.average_win_rate);
+            }
+            
+        } catch (error) {
+            console.warn('初始化时获取平均胜率失败:', error);
+        }
+    }
+    // ============== 新增代码结束 ============== //
             console.log('✅ 应用程序初始化完成');
         }
 
