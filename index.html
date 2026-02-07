@@ -2200,7 +2200,7 @@ async function autoCalculateSizeRecommendation() {
                         );
                         
                         if (realtimeWinRateResponse.success) {
-                            const winRatePercent = (realtimeWinRateResponse.win_rate * 100).toFixed(1);
+                            const winRatePercent = (realtimeWinRateResponse.win_rate ).toFixed(1);
                             document.getElementById('size-realtime-win-rate-value').textContent = `${winRatePercent}%`;
                             
                             // 在推荐结果旁边添加胜率提示（可选）
@@ -3444,4 +3444,5 @@ function resetSizeForm() {
     </script>
 </body>
 </html>
+
 
